@@ -4,11 +4,6 @@ This project provides Java modules to interact with a [Hiero network](https://hi
 The project provides integrations to Spring Boot or Eclipse Microprofile (like Quarkus) for interacting with Hiero.
 This module is based on the [Hedera Java SDK](https://github.com/hashgraph/hedera-sdk-java)(will be migrated to Hiero Java SDK in near future) and provides a set of managed services to interact with a Hiero network.
 
-> [!NOTE]  
-> The repo is currently transformed to be compatible with the vendor neutral [Hiero](hiero.org) project.
-> Hedera is 100% compatible with Hiero and the transformation is just a renaming of the packages, classes, documentation, and so on.
-> The transformation is still in progress and not all is renamed yet.
-
 ## Spring Boot support
 
 To use this module, you need to add the following dependency to your project:
