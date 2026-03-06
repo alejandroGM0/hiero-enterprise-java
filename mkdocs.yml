@@ -3,7 +3,7 @@
 
 site_name: Hiero Enterprise Java — Technical Documentation
 site_description: Technical documentation for Hiero Enterprise Java (Spring & MicroProfile integrations for Hiero)
-site_url: https://openelements.github.io/hiero-enterprise-java/
+site_url: https://hiero-ledger.github.io/hiero-enterprise-java/
 
 theme:
   name: material
