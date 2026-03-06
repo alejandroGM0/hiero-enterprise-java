@@ -204,6 +204,10 @@ As you can see 2 params are passed to the `release.sh` script, The first param d
 In the given example the project has defined version 0.1.0-SNAPSHOT before the script is executed.
 The execution will release the current code under version 0.1.0 and later switch the version to 0.2.0-SNAPSHOT and commit it.
 
+## Documentation
+
+Technical documentation (getting started, architecture, Spring/MicroProfile, managed services, ADRs) is in the **[docs](docs/)** folder and is published as [GitHub Pages](https://openelements.github.io/hiero-enterprise-java/). Pull requests that change the docs get a preview at `…/pr/<number>/`. Set **Settings → Pages → Deploy from a branch** → branch: `gh-pages`, folder: `/ (root)`.
+
 ## License
 
 This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
