@@ -31,3 +31,5 @@ replay_pid*
 **/target/
 /out
 **/pom.xml.versionsBackup
+
+site/
