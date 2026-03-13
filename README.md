@@ -10,7 +10,7 @@ To use this module, you need to add the following dependency to your project:
 
 ```xml 
 <dependency>
-    <groupId>com.open-elements.hiero</groupId>
+    <groupId>org.hiero</groupId>
     <artifactId>hiero-enterprise-spring</artifactId>
     <version>VERSION</version> 
 </dependency>
@@ -111,7 +111,7 @@ To use this module, you need to add the following dependency to your project:
 
 ```xml 
 <dependency>
-    <groupId>com.open-elements.hiero</groupId>
+    <groupId>org.hiero</groupId>
     <artifactId>hiero-enterprise-microprofile</artifactId>
     <version>VERSION</version> 
 </dependency>

@@ -9,5 +9,5 @@ stagingRepositories = ["target/staging-deploy"]
 applyMavenCentralRules = true
 
 [release.github]
-owner = "OpenElements"
+owner = "hiero-ledger"
 name = "hiero-enterprise-java"
