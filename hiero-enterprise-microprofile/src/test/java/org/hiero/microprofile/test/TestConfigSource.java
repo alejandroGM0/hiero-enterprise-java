@@ -48,14 +48,7 @@ public class TestConfigSource implements ConfigSource {
         .filter(e -> !e.getKey().equals("hiero.network.name"))
         .forEach(e -> properties.put(e.getKey(), e.getValue()));
 
-    properties.forEach((k, v) -> log.info("CONFIG: '{}'->'{}'", k, redactValue(v)));
-  }
-
-  /**
-   * Hide the value of the property by returning "<redacted>" or "<missing>" instead of the actual value.
-   */
-  private static String redactValue(final String value) {
-    return value == null ? "<missing>" : "<redacted>";
+    properties.forEach((k, v) -> log.info("CONFIG: '{}'->'{}'", k, v));
   }
 
   @Override
