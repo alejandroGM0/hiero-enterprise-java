@@ -14,6 +14,7 @@ import org.hiero.base.data.BalanceModification;
 import org.hiero.base.data.Page;
 import org.hiero.base.data.Result;
 import org.hiero.base.data.TransactionInfo;
+import org.hiero.base.data.Transfer;
 import org.hiero.base.mirrornode.TransactionRepository;
 import org.hiero.base.protocol.data.TransactionType;
 import org.hiero.microprofile.ClientProvider;
@@ -46,19 +47,16 @@ public class TransactionRepositoryTest {
     final Account account = accountClient.createAccount(1);
     hieroTestUtils.waitForMirrorNodeRecords(account.accountId());
     final Page<TransactionInfo> page = transactionRepository.findByAccount(account.accountId());
-    Assertions.assertNotNull(page);
 
     final List<TransactionInfo> data = page.getData();
     Assertions.assertFalse(data.isEmpty());
   }
 
   @Test
-  void testFindTransactionByAccountIdGiveEmptyListForAccountIdWithZeroTransaction()
-      throws Exception {
+  void findByAccountReturnsEmptyWhenNoTransactions() throws Exception {
     final AccountId accountId = AccountId.fromString("0.0.0");
     hieroTestUtils.waitForMirrorNodeRecords();
     final Page<TransactionInfo> page = transactionRepository.findByAccount(accountId);
-    Assertions.assertNotNull(page);
 
     final List<TransactionInfo> data = page.getData();
     Assertions.assertTrue(data.isEmpty());
@@ -71,7 +69,10 @@ public class TransactionRepositoryTest {
     final Page<TransactionInfo> page =
         transactionRepository.findByAccountAndType(
             account.accountId(), TransactionType.ACCOUNT_CREATE);
-    Assertions.assertNotNull(page);
+
+    final List<TransactionInfo> data = page.getData();
+    Assertions.assertFalse(data.isEmpty());
+    data.forEach(tx -> Assertions.assertEquals(TransactionType.ACCOUNT_CREATE, tx.name()));
   }
 
   @Test
@@ -80,7 +81,10 @@ public class TransactionRepositoryTest {
     hieroTestUtils.waitForMirrorNodeRecords();
     final Page<TransactionInfo> page =
         transactionRepository.findByAccountAndResult(account.accountId(), Result.SUCCESS);
-    Assertions.assertNotNull(page);
+
+    final List<TransactionInfo> data = page.getData();
+    Assertions.assertFalse(data.isEmpty());
+    data.forEach(tx -> Assertions.assertEquals(Result.SUCCESS.name(), tx.result()));
   }
 
   @Test
@@ -89,7 +93,16 @@ public class TransactionRepositoryTest {
     hieroTestUtils.waitForMirrorNodeRecords();
     final Page<TransactionInfo> page =
         transactionRepository.findByAccountAndModification(
-            account.accountId(), BalanceModification.DEBIT);
-    Assertions.assertNotNull(page);
+            account.accountId(), BalanceModification.CREDIT);
+
+    final List<TransactionInfo> data = page.getData();
+    Assertions.assertFalse(data.isEmpty());
+    data.forEach(
+        tx ->
+            Assertions.assertTrue(
+                tx.transfers().stream()
+                    .anyMatch(
+                        (Transfer t) ->
+                            t.account().equals(account.accountId()) && t.amount() > 0L)));
   }
 }
