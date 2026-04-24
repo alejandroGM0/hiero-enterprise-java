@@ -63,7 +63,10 @@ jobs:
       - name: Build site
         run: zensical build --clean
 
+      # Fork PRs get a read-only token on the base repo, so we cannot push to gh-pages.
+      # Same-repo PRs still get the preview under /pr/<number>/.
       - name: Deploy PR preview to gh-pages
+        if: github.event.pull_request.head.repo.full_name == github.repository
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -72,6 +75,7 @@ jobs:
           keep_files: true
 
       - name: Comment PR with preview URL
+        if: github.event.pull_request.head.repo.full_name == github.repository
         uses: actions/github-script@v9
         with:
           script: |
