@@ -442,18 +442,18 @@ public class ProtocolLayerDataCreationTests {
     final ContractId contractId = ContractId.fromString(contractIdString);
     final String functionName = "functionName";
     final ContractParam<Long> contractParam = ContractParam.int32(1);
-    final List<ContractParam<?>> constructorParams = List.of(contractParam);
+    final List<ContractParam<?>> functionParams = List.of(contractParam);
 
     Assertions.assertDoesNotThrow(() -> ContractCallRequest.of(contractIdString, functionName));
     Assertions.assertDoesNotThrow(
         () -> ContractCallRequest.of(contractIdString, functionName, contractParam));
     Assertions.assertDoesNotThrow(
-        () -> ContractCallRequest.of(contractIdString, functionName, constructorParams));
+        () -> ContractCallRequest.of(contractIdString, functionName, functionParams));
     Assertions.assertDoesNotThrow(() -> ContractCallRequest.of(contractId, functionName));
     Assertions.assertDoesNotThrow(
         () -> ContractCallRequest.of(contractId, functionName, contractParam));
     Assertions.assertDoesNotThrow(
-        () -> ContractCallRequest.of(contractId, functionName, constructorParams));
+        () -> ContractCallRequest.of(contractId, functionName, functionParams));
     Assertions.assertDoesNotThrow(
         () ->
             new ContractCallRequest(
@@ -461,7 +461,7 @@ public class ProtocolLayerDataCreationTests {
                 transactionValidDuration,
                 contractId,
                 functionName,
-                constructorParams));
+                functionParams));
 
     Assertions.assertThrows(
         NullPointerException.class, () -> ContractCallRequest.of((String) null, functionName));
@@ -488,12 +488,12 @@ public class ProtocolLayerDataCreationTests {
         NullPointerException.class,
         () ->
             new ContractCallRequest(
-                null, transactionValidDuration, contractId, functionName, constructorParams));
+                null, transactionValidDuration, contractId, functionName, functionParams));
     Assertions.assertThrows(
         NullPointerException.class,
         () ->
             new ContractCallRequest(
-                maxTransactionFee, null, contractId, functionName, constructorParams));
+                maxTransactionFee, null, contractId, functionName, functionParams));
     Assertions.assertThrows(
         NullPointerException.class,
         () ->
@@ -502,12 +502,12 @@ public class ProtocolLayerDataCreationTests {
                 transactionValidDuration,
                 null,
                 functionName,
-                constructorParams));
+                functionParams));
     Assertions.assertThrows(
         NullPointerException.class,
         () ->
             new ContractCallRequest(
-                maxTransactionFee, transactionValidDuration, contractId, null, constructorParams));
+                maxTransactionFee, transactionValidDuration, contractId, null, functionParams));
     Assertions.assertThrows(
         NullPointerException.class,
         () ->
@@ -521,12 +521,12 @@ public class ProtocolLayerDataCreationTests {
                 transactionValidDuration,
                 contractId,
                 functionName,
-                constructorParams));
+                functionParams));
     Assertions.assertThrows(
         IllegalArgumentException.class,
         () ->
             new ContractCallRequest(
-                maxTransactionFee, Duration.ZERO, contractId, functionName, constructorParams));
+                maxTransactionFee, Duration.ZERO, contractId, functionName, functionParams));
     Assertions.assertThrows(
         IllegalArgumentException.class,
         () ->
@@ -535,17 +535,17 @@ public class ProtocolLayerDataCreationTests {
                 Duration.ofSeconds(-1),
                 contractId,
                 functionName,
-                constructorParams));
+                functionParams));
     Assertions.assertThrows(
         IllegalArgumentException.class,
         () ->
             new ContractCallRequest(
-                maxTransactionFee, transactionValidDuration, contractId, "", constructorParams));
+                maxTransactionFee, transactionValidDuration, contractId, "", functionParams));
     Assertions.assertThrows(
         IllegalArgumentException.class,
         () ->
             new ContractCallRequest(
-                maxTransactionFee, transactionValidDuration, contractId, "   ", constructorParams));
+                maxTransactionFee, transactionValidDuration, contractId, "   ", functionParams));
     Assertions.assertThrows(
         IllegalArgumentException.class,
         () ->
@@ -554,7 +554,7 @@ public class ProtocolLayerDataCreationTests {
                 transactionValidDuration,
                 contractId,
                 " blankPrefix",
-                constructorParams));
+                functionParams));
     Assertions.assertThrows(
         IllegalArgumentException.class,
         () ->
@@ -563,7 +563,7 @@ public class ProtocolLayerDataCreationTests {
                 transactionValidDuration,
                 contractId,
                 "blankSuffix ",
-                constructorParams));
+                functionParams));
   }
 
   @Test

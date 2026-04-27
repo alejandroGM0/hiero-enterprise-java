@@ -1,6 +1,7 @@
 package org.hiero.microprofile.implementation;
 
 import com.hedera.hashgraph.sdk.AccountId;
+import com.hedera.hashgraph.sdk.ContractId;
 import com.hedera.hashgraph.sdk.TokenId;
 import com.hedera.hashgraph.sdk.TopicId;
 import jakarta.json.JsonObject;
@@ -10,6 +11,8 @@ import java.util.function.Function;
 import org.hiero.base.HieroException;
 import org.hiero.base.data.Balance;
 import org.hiero.base.data.BalanceModification;
+import org.hiero.base.data.ContractLog;
+import org.hiero.base.data.ContractResult;
 import org.hiero.base.data.Nft;
 import org.hiero.base.data.NftMetadata;
 import org.hiero.base.data.Page;
@@ -24,6 +27,11 @@ import org.hiero.base.protocol.data.TransactionType;
 import org.jspecify.annotations.NonNull;
 
 public class MirrorNodeClientImpl extends AbstractMirrorNodeClient<JsonObject> {
+
+  private static final String ACCOUNTS_PATH = "/api/v1/accounts";
+  private static final String TOKENS_PATH = "/api/v1/tokens";
+  private static final String NFTS_PATH = "/nfts";
+  private static final String ACCOUNT_ID_QUERY = "?account.id=";
 
   private final MirrorNodeRestClientImpl restClient;
 
@@ -47,18 +55,31 @@ public class MirrorNodeClientImpl extends AbstractMirrorNodeClient<JsonObject> {
 
   @Override
   public @NonNull Page<Nft> queryNftsByAccount(@NonNull AccountId accountId) throws HieroException {
-    throw new RuntimeException("Not implemented");
+    Objects.requireNonNull(accountId, "accountId must not be null");
+    final String path = ACCOUNTS_PATH + "/" + accountId + NFTS_PATH;
+    final Function<JsonObject, List<Nft>> dataExtractionFunction =
+        node -> jsonConverter.toNfts(node);
+    return new RestBasedPage<>(restClient.getTarget(), dataExtractionFunction, path);
   }
 
   @Override
   public @NonNull Page<Nft> queryNftsByAccountAndTokenId(
       @NonNull AccountId accountId, @NonNull TokenId tokenId) throws HieroException {
-    throw new RuntimeException("Not implemented");
+    Objects.requireNonNull(accountId, "accountId must not be null");
+    Objects.requireNonNull(tokenId, "tokenId must not be null");
+    final String path = TOKENS_PATH + "/" + tokenId + NFTS_PATH + ACCOUNT_ID_QUERY + accountId;
+    final Function<JsonObject, List<Nft>> dataExtractionFunction =
+        node -> jsonConverter.toNfts(node);
+    return new RestBasedPage<>(restClient.getTarget(), dataExtractionFunction, path);
   }
 
   @Override
   public @NonNull Page<Nft> queryNftsByTokenId(@NonNull TokenId tokenId) throws HieroException {
-    throw new RuntimeException("Not implemented");
+    Objects.requireNonNull(tokenId, "tokenId must not be null");
+    final String path = TOKENS_PATH + "/" + tokenId + NFTS_PATH;
+    final Function<JsonObject, List<Nft>> dataExtractionFunction =
+        node -> jsonConverter.toNfts(node);
+    return new RestBasedPage<>(restClient.getTarget(), dataExtractionFunction, path);
   }
 
   @Override
@@ -139,6 +160,26 @@ public class MirrorNodeClientImpl extends AbstractMirrorNodeClient<JsonObject> {
     final String path = "/api/v1/topics/" + topicId + "/messages";
     final Function<JsonObject, List<TopicMessage>> dataExtractionFunction =
         node -> jsonConverter.toTopicMessages(node);
+    return new RestBasedPage<>(restClient.getTarget(), dataExtractionFunction, path);
+  }
+
+  @Override
+  public @NonNull Page<ContractResult> queryContractResults(@NonNull ContractId contractId)
+      throws HieroException {
+    Objects.requireNonNull(contractId, "contractId must not be null");
+    final String path = "/api/v1/contracts/" + contractId + "/results";
+    final Function<JsonObject, List<ContractResult>> dataExtractionFunction =
+        node -> jsonConverter.toContractResults(node);
+    return new RestBasedPage<>(restClient.getTarget(), dataExtractionFunction, path);
+  }
+
+  @Override
+  public @NonNull Page<ContractLog> queryContractLogs(@NonNull ContractId contractId)
+      throws HieroException {
+    Objects.requireNonNull(contractId, "contractId must not be null");
+    final String path = "/api/v1/contracts/" + contractId + "/results/logs";
+    final Function<JsonObject, List<ContractLog>> dataExtractionFunction =
+        node -> jsonConverter.toContractLogs(node);
     return new RestBasedPage<>(restClient.getTarget(), dataExtractionFunction, path);
   }
 
