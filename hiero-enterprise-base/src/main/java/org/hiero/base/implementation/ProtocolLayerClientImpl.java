@@ -294,7 +294,7 @@ public class ProtocolLayerClientImpl implements ProtocolLayerClient {
   public ContractCallResult executeContractCallTransaction(
       @NonNull final ContractCallRequest request) throws HieroException {
     Objects.requireNonNull(request, "request must not be null");
-    final ContractFunctionParameters functionParams = createParameters(request.constructorParams());
+    final ContractFunctionParameters functionParams = createParameters(request.functionParams());
     final ContractExecuteTransaction transaction =
         new ContractExecuteTransaction()
             .setMaxTransactionFee(request.maxTransactionFee())

@@ -89,7 +89,7 @@ public interface AccountClient {
    */
   @NonNull
   default Hbar getAccountBalance(@NonNull String accountId) throws HieroException {
-    Objects.requireNonNull(accountId, "newAccountId must not be null");
+    Objects.requireNonNull(accountId, "accountId must not be null");
     return getAccountBalance(AccountId.fromString(accountId));
   }
 
