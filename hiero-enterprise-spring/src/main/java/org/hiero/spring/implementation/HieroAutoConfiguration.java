@@ -20,6 +20,7 @@ import org.hiero.base.implementation.NetworkRepositoryImpl;
 import org.hiero.base.implementation.NftClientImpl;
 import org.hiero.base.implementation.NftRepositoryImpl;
 import org.hiero.base.implementation.ProtocolLayerClientImpl;
+import org.hiero.base.implementation.ScheduleRepositoryImpl;
 import org.hiero.base.implementation.SmartContractClientImpl;
 import org.hiero.base.implementation.TokenRepositoryImpl;
 import org.hiero.base.implementation.TopicClientImpl;
@@ -31,6 +32,7 @@ import org.hiero.base.mirrornode.ContractRepository;
 import org.hiero.base.mirrornode.MirrorNodeClient;
 import org.hiero.base.mirrornode.NetworkRepository;
 import org.hiero.base.mirrornode.NftRepository;
+import org.hiero.base.mirrornode.ScheduleRepository;
 import org.hiero.base.mirrornode.TokenRepository;
 import org.hiero.base.mirrornode.TopicRepository;
 import org.hiero.base.mirrornode.TransactionRepository;
@@ -220,6 +222,16 @@ public class HieroAutoConfiguration {
       matchIfMissing = true)
   TopicRepository topicRepository(final MirrorNodeClient mirrorNodeClient) {
     return new TopicRepositoryImpl(mirrorNodeClient);
+  }
+
+  @Bean
+  @ConditionalOnProperty(
+      prefix = "spring.hiero",
+      name = "mirrorNodeSupported",
+      havingValue = "true",
+      matchIfMissing = true)
+  ScheduleRepository scheduleRepository(final MirrorNodeClient mirrorNodeClient) {
+    return new ScheduleRepositoryImpl(mirrorNodeClient);
   }
 
   @Bean
