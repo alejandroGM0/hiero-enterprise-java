@@ -29,6 +29,10 @@ import org.springframework.web.client.RestClient;
 
 public class MirrorNodeClientImpl extends AbstractMirrorNodeClient<JsonNode> {
 
+  private static final String SCHEDULES_PATH = "/api/v1/schedules";
+
+  private static final String ACCOUNT_ID_QUERY_PARAM = "?account.id=";
+
   private final ObjectMapper objectMapper;
 
   private final RestClient restClient;
@@ -177,18 +181,17 @@ public class MirrorNodeClientImpl extends AbstractMirrorNodeClient<JsonNode> {
 
   @Override
   public @NonNull Page<Schedule> querySchedules() throws HieroException {
-    final String path = "/api/v1/schedules";
     final Function<JsonNode, List<Schedule>> dataExtractionFunction =
         node -> jsonConverter.toSchedules(node);
     return new RestBasedPage<>(
-        objectMapper, restClient.mutate().clone(), path, dataExtractionFunction);
+        objectMapper, restClient.mutate().clone(), SCHEDULES_PATH, dataExtractionFunction);
   }
 
   @Override
   public @NonNull Page<Schedule> querySchedulesByAccount(@NonNull AccountId accountId)
       throws HieroException {
     Objects.requireNonNull(accountId, "accountId must not be null");
-    final String path = "/api/v1/schedules?account.id=" + accountId;
+    final String path = SCHEDULES_PATH + ACCOUNT_ID_QUERY_PARAM + accountId;
     final Function<JsonNode, List<Schedule>> dataExtractionFunction =
         node -> jsonConverter.toSchedules(node);
     return new RestBasedPage<>(

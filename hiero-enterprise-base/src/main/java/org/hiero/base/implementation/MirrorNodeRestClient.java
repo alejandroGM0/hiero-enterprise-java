@@ -11,6 +11,8 @@ import org.jspecify.annotations.NonNull;
 
 public interface MirrorNodeRestClient<JSON> {
 
+  String SCHEDULES_PATH = "/api/v1/schedules";
+
   @NonNull
   default JSON queryNftsByTokenIdAndSerial(
       @NonNull final TokenId tokenId, @NonNull final long serialNumber) throws HieroException {
@@ -74,7 +76,7 @@ public interface MirrorNodeRestClient<JSON> {
   @NonNull
   default JSON queryScheduleById(@NonNull final ScheduleId scheduleId) throws HieroException {
     Objects.requireNonNull(scheduleId, "scheduleId must not be null");
-    return doGetCall("/api/v1/schedules/" + scheduleId);
+    return doGetCall(SCHEDULES_PATH + "/" + scheduleId);
   }
 
   @NonNull
