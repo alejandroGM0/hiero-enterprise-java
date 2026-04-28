@@ -5,11 +5,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.hedera.hashgraph.sdk.AccountId;
 import com.hedera.hashgraph.sdk.ContractId;
 import java.time.Instant;
 import java.util.List;
 import org.hiero.base.data.ContractLog;
 import org.hiero.base.data.ContractResult;
+import org.hiero.base.data.NftTransactionTransfer;
+import org.hiero.base.protocol.data.TransactionType;
 import org.hiero.spring.implementation.MirrorNodeJsonConverterImpl;
 import org.junit.jupiter.api.Test;
 
@@ -70,6 +73,32 @@ class MirrorNodeJsonConverterImplContractTest {
     assertEquals(ContractId.fromString("0.0.5005"), contractLog.rootContractId());
     assertEquals(Instant.ofEpochSecond(1_586_567_700L, 453_054_000), contractLog.timestamp());
     assertEquals(1, contractLog.transactionIndex());
+  }
+
+  @Test
+  void toNftTransactionTransfersReturnsEmptyWhenKeyMissing() throws Exception {
+    final JsonNode jsonNode = objectMapper.readTree("{\"links\":{\"next\":null}}");
+
+    final List<NftTransactionTransfer> result = converter.toNftTransactionTransfers(jsonNode);
+
+    assertTrue(result.isEmpty());
+  }
+
+  @Test
+  void toNftTransactionTransfersParsesSingleEntry() throws Exception {
+    final JsonNode jsonNode = objectMapper.readTree(nftTransactionHistoryJson());
+
+    final List<NftTransactionTransfer> result = converter.toNftTransactionTransfers(jsonNode);
+
+    assertEquals(1, result.size());
+    final NftTransactionTransfer transfer = result.get(0);
+    assertEquals(Instant.ofEpochSecond(1_618_591_023L, 997_420_021), transfer.consensusTimestamp());
+    assertEquals(false, transfer.isApproval());
+    assertEquals(0, transfer.nonce());
+    assertEquals(AccountId.fromString("0.0.11"), transfer.receiverAccountId());
+    assertEquals(AccountId.fromString("0.0.10"), transfer.senderAccountId());
+    assertEquals("0.0.19789-1618591023-997420021", transfer.transactionId());
+    assertEquals(TransactionType.CRYPTO_TRANSFER, transfer.type());
   }
 
   private static String contractResultsJson() {
@@ -133,6 +162,25 @@ class MirrorNodeJsonConverterImplContractTest {
               "timestamp": "1586567700.453054000",
               "transaction_hash": "0x397022d1e5baeb89d0ab66e6bf602640610e6fb7e55d78638db861e2c6339aa9",
               "transaction_index": 1
+            }
+          ],
+          "links": {"next": null}
+        }
+        """;
+  }
+
+  private static String nftTransactionHistoryJson() {
+    return """
+        {
+          "transactions": [
+            {
+              "consensus_timestamp": "1618591023.997420021",
+              "is_approval": false,
+              "nonce": 0,
+              "receiver_account_id": "0.0.11",
+              "sender_account_id": "0.0.10",
+              "transaction_id": "0.0.19789-1618591023-997420021",
+              "type": "CRYPTOTRANSFER"
             }
           ],
           "links": {"next": null}

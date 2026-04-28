@@ -15,6 +15,7 @@ import org.hiero.base.data.ContractLog;
 import org.hiero.base.data.ContractResult;
 import org.hiero.base.data.Nft;
 import org.hiero.base.data.NftMetadata;
+import org.hiero.base.data.NftTransactionTransfer;
 import org.hiero.base.data.Page;
 import org.hiero.base.data.Result;
 import org.hiero.base.data.Token;
@@ -79,6 +80,20 @@ public class MirrorNodeClientImpl extends AbstractMirrorNodeClient<JsonObject> {
     final String path = TOKENS_PATH + "/" + tokenId + NFTS_PATH;
     final Function<JsonObject, List<Nft>> dataExtractionFunction =
         node -> jsonConverter.toNfts(node);
+    return new RestBasedPage<>(restClient.getTarget(), dataExtractionFunction, path);
+  }
+
+  @Override
+  public @NonNull Page<NftTransactionTransfer> queryNftTransactionHistory(
+      @NonNull TokenId tokenId, long serialNumber) throws HieroException {
+    Objects.requireNonNull(tokenId, "tokenId must not be null");
+    if (serialNumber <= 0) {
+      throw new IllegalArgumentException("serialNumber must be positive");
+    }
+    final String path =
+        TOKENS_PATH + "/" + tokenId + NFTS_PATH + "/" + serialNumber + "/transactions";
+    final Function<JsonObject, List<NftTransactionTransfer>> dataExtractionFunction =
+        node -> jsonConverter.toNftTransactionTransfers(node);
     return new RestBasedPage<>(restClient.getTarget(), dataExtractionFunction, path);
   }
 

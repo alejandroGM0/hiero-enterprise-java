@@ -36,6 +36,7 @@ import org.hiero.base.data.NetworkFee;
 import org.hiero.base.data.NetworkStake;
 import org.hiero.base.data.NetworkSupplies;
 import org.hiero.base.data.Nft;
+import org.hiero.base.data.NftTransactionTransfer;
 import org.hiero.base.data.NftTransfer;
 import org.hiero.base.data.Page;
 import org.hiero.base.data.RoyaltyFee;
@@ -353,6 +354,49 @@ public class MirrorNodeJsonConverterImpl implements MirrorNodeJsonConverter<Json
         .filter(Optional::isPresent)
         .map(Optional::get)
         .toList();
+  }
+
+  @Override
+  public @NonNull List<NftTransactionTransfer> toNftTransactionTransfers(
+      @NonNull JsonObject jsonObject) {
+    Objects.requireNonNull(jsonObject, "jsonObject must not be null");
+    if (!jsonObject.containsKey("transactions")) {
+      return List.of();
+    }
+    final JsonArray transactionsArray = jsonObject.getJsonArray("transactions");
+    if (transactionsArray == null) {
+      throw new IllegalArgumentException(
+          "NFT transaction history array is not an array: " + transactionsArray);
+    }
+    if (transactionsArray.isEmpty()) {
+      return List.of();
+    }
+    return jsonArrayToStream(transactionsArray)
+        .map(n -> toNftTransactionTransfer(n.asJsonObject()))
+        .filter(Optional::isPresent)
+        .map(Optional::get)
+        .toList();
+  }
+
+  private Optional<NftTransactionTransfer> toNftTransactionTransfer(
+      @NonNull JsonObject jsonObject) {
+    Objects.requireNonNull(jsonObject, "jsonObject must not be null");
+    if (jsonObject.isEmpty()) {
+      return Optional.empty();
+    }
+    try {
+      return Optional.of(
+          new NftTransactionTransfer(
+              parseTimestamp(jsonObject.getString("consensus_timestamp")),
+              jsonObject.getBoolean("is_approval"),
+              jsonObject.getInt("nonce"),
+              accountIdOrNull(jsonObject, "receiver_account_id"),
+              accountIdOrNull(jsonObject, "sender_account_id"),
+              jsonObject.getString("transaction_id"),
+              TransactionType.from(jsonObject.getString("type"))));
+    } catch (final Exception e) {
+      throw new IllegalStateException("Can not parse JSON: " + jsonObject, e);
+    }
   }
 
   @NonNull
@@ -1014,6 +1058,11 @@ public class MirrorNodeJsonConverterImpl implements MirrorNodeJsonConverter<Json
   private ContractId contractIdOrNull(@NonNull JsonObject jsonObject, @NonNull String fieldName) {
     final String value = stringOrNull(jsonObject, fieldName);
     return value == null ? null : ContractId.fromString(value);
+  }
+
+  private AccountId accountIdOrNull(@NonNull JsonObject jsonObject, @NonNull String fieldName) {
+    final String value = stringOrNull(jsonObject, fieldName);
+    return value == null ? null : AccountId.fromString(value);
   }
 
   private JsonArray jsonArrayOrNull(@NonNull JsonObject jsonObject, @NonNull String fieldName) {
