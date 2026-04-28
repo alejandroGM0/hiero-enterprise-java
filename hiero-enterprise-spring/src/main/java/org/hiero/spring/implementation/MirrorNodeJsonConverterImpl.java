@@ -56,6 +56,24 @@ import org.jspecify.annotations.NonNull;
 
 public class MirrorNodeJsonConverterImpl implements MirrorNodeJsonConverter<JsonNode> {
 
+  private static final String ADMIN_KEY = "admin_key";
+  private static final String CONSENSUS_TIMESTAMP = "consensus_timestamp";
+  private static final String CREATOR_ACCOUNT_ID = "creator_account_id";
+  private static final String DELETED = "deleted";
+  private static final String EXECUTED_TIMESTAMP = "executed_timestamp";
+  private static final String EXPIRATION_TIME = "expiration_time";
+  private static final String KEY = "key";
+  private static final String MEMO = "memo";
+  private static final String PAYER_ACCOUNT_ID = "payer_account_id";
+  private static final String PUBLIC_KEY_PREFIX = "public_key_prefix";
+  private static final String SCHEDULE_ID = "schedule_id";
+  private static final String SCHEDULES = "schedules";
+  private static final String SIGNATURE = "signature";
+  private static final String SIGNATURES = "signatures";
+  private static final String TRANSACTION_BODY = "transaction_body";
+  private static final String TYPE = "type";
+  private static final String WAIT_FOR_EXPIRY = "wait_for_expiry";
+
   @Override
   public Optional<Nft> toNft(final JsonNode node) {
     Objects.requireNonNull(node, "jsonNode must not be null");
@@ -864,23 +882,23 @@ public class MirrorNodeJsonConverterImpl implements MirrorNodeJsonConverter<Json
 
     try {
       final byte[] transactionBody =
-          node.get("transaction_body").isNull()
+          node.get(TRANSACTION_BODY).isNull()
               ? null
-              : Base64.getDecoder().decode(node.get("transaction_body").asText());
+              : Base64.getDecoder().decode(node.get(TRANSACTION_BODY).asText());
       return Optional.of(
           new Schedule(
-              ScheduleId.fromString(node.get("schedule_id").asText()),
-              publicKeyOrNull(node, "admin_key"),
-              node.get("deleted").asBoolean(),
-              parseTimestamp(node.get("consensus_timestamp").asText()),
-              AccountId.fromString(node.get("creator_account_id").asText()),
-              timestampOrNull(node, "executed_timestamp"),
-              timestampOrNull(node, "expiration_time"),
-              node.get("memo").asText(),
-              accountIdOrNull(node, "payer_account_id"),
-              scheduleSignatures(node.get("signatures")),
+              ScheduleId.fromString(node.get(SCHEDULE_ID).asText()),
+              publicKeyOrNull(node, ADMIN_KEY),
+              node.get(DELETED).asBoolean(),
+              parseTimestamp(node.get(CONSENSUS_TIMESTAMP).asText()),
+              AccountId.fromString(node.get(CREATOR_ACCOUNT_ID).asText()),
+              timestampOrNull(node, EXECUTED_TIMESTAMP),
+              timestampOrNull(node, EXPIRATION_TIME),
+              node.get(MEMO).asText(),
+              accountIdOrNull(node, PAYER_ACCOUNT_ID),
+              scheduleSignatures(node.get(SIGNATURES)),
               transactionBody,
-              node.get("wait_for_expiry").asBoolean()));
+              node.get(WAIT_FOR_EXPIRY).asBoolean()));
     } catch (final Exception e) {
       throw new JsonParseException(node, e);
     }
@@ -903,10 +921,10 @@ public class MirrorNodeJsonConverterImpl implements MirrorNodeJsonConverter<Json
   @Override
   public @NonNull List<Schedule> toSchedules(@NonNull JsonNode node) {
     Objects.requireNonNull(node, "jsonNode must not be null");
-    if (!node.has("schedules")) {
+    if (!node.has(SCHEDULES)) {
       return List.of();
     }
-    final JsonNode schedulesNode = node.get("schedules");
+    final JsonNode schedulesNode = node.get(SCHEDULES);
     if (!schedulesNode.isArray()) {
       throw new IllegalArgumentException("Schedules node is not an array: " + schedulesNode);
     }
@@ -925,10 +943,10 @@ public class MirrorNodeJsonConverterImpl implements MirrorNodeJsonConverter<Json
     try {
       return Optional.of(
           new ScheduleSignature(
-              parseTimestamp(node.get("consensus_timestamp").asText()),
-              node.get("public_key_prefix").asText(),
-              node.get("signature").asText(),
-              node.get("type").asText()));
+              parseTimestamp(node.get(CONSENSUS_TIMESTAMP).asText()),
+              node.get(PUBLIC_KEY_PREFIX).asText(),
+              node.get(SIGNATURE).asText(),
+              node.get(TYPE).asText()));
     } catch (final Exception e) {
       throw new JsonParseException(node, e);
     }
@@ -950,7 +968,7 @@ public class MirrorNodeJsonConverterImpl implements MirrorNodeJsonConverter<Json
     if (field == null || field.isNull()) {
       return null;
     }
-    return PublicKey.fromString(field.get("key").asText());
+    return PublicKey.fromString(field.get(KEY).asText());
   }
 
   private AccountId accountIdOrNull(@NonNull JsonNode node, @NonNull String fieldName) {
