@@ -18,6 +18,7 @@ import com.hedera.hashgraph.sdk.FileDeleteTransaction;
 import com.hedera.hashgraph.sdk.FileInfo;
 import com.hedera.hashgraph.sdk.FileInfoQuery;
 import com.hedera.hashgraph.sdk.FileUpdateTransaction;
+import com.hedera.hashgraph.sdk.HookStoreTransaction;
 import com.hedera.hashgraph.sdk.NftId;
 import com.hedera.hashgraph.sdk.PrivateKey;
 import com.hedera.hashgraph.sdk.PublicKey;
@@ -77,6 +78,8 @@ import org.hiero.base.protocol.data.FileInfoRequest;
 import org.hiero.base.protocol.data.FileInfoResponse;
 import org.hiero.base.protocol.data.FileUpdateRequest;
 import org.hiero.base.protocol.data.FileUpdateResult;
+import org.hiero.base.protocol.data.HookStoreRequest;
+import org.hiero.base.protocol.data.HookStoreResult;
 import org.hiero.base.protocol.data.TokenAssociateRequest;
 import org.hiero.base.protocol.data.TokenAssociateResult;
 import org.hiero.base.protocol.data.TokenBurnRequest;
@@ -669,6 +672,28 @@ public class ProtocolLayerClientImpl implements ProtocolLayerClient {
       return new TokenTransferResult(receipt.transactionId, receipt.status);
     } catch (final Exception e) {
       throw new HieroException("Failed to execute transfer nft transaction", e);
+    }
+  }
+
+  @Override
+  public @NonNull HookStoreResult executeHookStoreTransaction(
+      @NonNull final HookStoreRequest request) throws HieroException {
+    Objects.requireNonNull(request, "request must not be null");
+    try {
+      final HookStoreTransaction transaction =
+          new HookStoreTransaction()
+              .setMaxTransactionFee(request.maxTransactionFee())
+              .setTransactionValidDuration(request.transactionValidDuration())
+              .setHookId(request.hookId())
+              .setStorageUpdates(request.storageUpdates());
+      if (!request.signerKeys().isEmpty()) {
+        sign(transaction, request.signerKeys().toArray(PrivateKey[]::new));
+      }
+      final TransactionReceipt receipt =
+          executeTransactionAndWaitOnReceipt(transaction, TransactionType.HOOK_STORE);
+      return new HookStoreResult(receipt.transactionId, receipt.status);
+    } catch (final Exception e) {
+      throw new HieroException("Failed to execute hook store transaction", e);
     }
   }
 
