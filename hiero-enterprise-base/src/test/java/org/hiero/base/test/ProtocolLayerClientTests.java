@@ -72,12 +72,12 @@ public class ProtocolLayerClientTests {
     Assertions.assertThrows(
         NullPointerException.class, () -> client.executeTopicMessageSubmitTransaction(null));
     Assertions.assertThrows(
-        NullPointerException.class, () -> client.executeTokenCreateTransaction(null));
-    Assertions.assertThrows(
         NullPointerException.class, () -> client.executeBurnTokenTransaction(null));
     Assertions.assertThrows(
         NullPointerException.class, () -> client.executeMintTokenTransaction(null));
     Assertions.assertThrows(
         NullPointerException.class, () -> client.executeTransferTransaction(null));
+    Assertions.assertThrows(
+        NullPointerException.class, () -> client.executeHookStoreTransaction(null));
   }
 }

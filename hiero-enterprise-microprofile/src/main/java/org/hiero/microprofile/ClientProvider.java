@@ -8,14 +8,17 @@ import org.hiero.base.AccountClient;
 import org.hiero.base.FileClient;
 import org.hiero.base.FungibleTokenClient;
 import org.hiero.base.HieroContext;
+import org.hiero.base.HookClient;
 import org.hiero.base.NftClient;
 import org.hiero.base.SmartContractClient;
 import org.hiero.base.config.HieroConfig;
 import org.hiero.base.implementation.AccountClientImpl;
 import org.hiero.base.implementation.AccountRepositoryImpl;
+import org.hiero.base.implementation.BlockRepositoryImpl;
 import org.hiero.base.implementation.ContractRepositoryImpl;
 import org.hiero.base.implementation.FileClientImpl;
 import org.hiero.base.implementation.FungibleTokenClientImpl;
+import org.hiero.base.implementation.HookClientImpl;
 import org.hiero.base.implementation.NetworkRepositoryImpl;
 import org.hiero.base.implementation.NftClientImpl;
 import org.hiero.base.implementation.NftRepositoryImpl;
@@ -25,6 +28,7 @@ import org.hiero.base.implementation.SmartContractClientImpl;
 import org.hiero.base.implementation.TokenRepositoryImpl;
 import org.hiero.base.implementation.TransactionRepositoryImpl;
 import org.hiero.base.mirrornode.AccountRepository;
+import org.hiero.base.mirrornode.BlockRepository;
 import org.hiero.base.mirrornode.ContractRepository;
 import org.hiero.base.mirrornode.MirrorNodeClient;
 import org.hiero.base.mirrornode.NetworkRepository;
@@ -112,6 +116,13 @@ public class ClientProvider {
   @NonNull
   @Produces
   @ApplicationScoped
+  HookClient createHookClient(@NonNull final ProtocolLayerClient protocolLayerClient) {
+    return new HookClientImpl(protocolLayerClient);
+  }
+
+  @NonNull
+  @Produces
+  @ApplicationScoped
   ContractVerificationClient createContractVerificationClient(
       @NonNull final HieroConfig hieroConfig) {
     return new ContractVerificationClientImpl(hieroConfig);
@@ -128,6 +139,13 @@ public class ClientProvider {
     final MirrorNodeRestClientImpl restClient = new MirrorNodeRestClientImpl(target);
     final MirrorNodeJsonConverterImpl jsonConverter = new MirrorNodeJsonConverterImpl();
     return new MirrorNodeClientImpl(restClient, jsonConverter);
+  }
+
+  @NonNull
+  @Produces
+  @ApplicationScoped
+  BlockRepository createBlockRepository(@NonNull final MirrorNodeClient mirrorNodeClient) {
+    return new BlockRepositoryImpl(mirrorNodeClient);
   }
 
   @NonNull

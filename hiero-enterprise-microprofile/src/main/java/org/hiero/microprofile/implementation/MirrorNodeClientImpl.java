@@ -10,6 +10,7 @@ import java.util.function.Function;
 import org.hiero.base.HieroException;
 import org.hiero.base.data.Balance;
 import org.hiero.base.data.BalanceModification;
+import org.hiero.base.data.Block;
 import org.hiero.base.data.Nft;
 import org.hiero.base.data.NftMetadata;
 import org.hiero.base.data.Page;
@@ -172,5 +173,13 @@ public class MirrorNodeClientImpl extends AbstractMirrorNodeClient<JsonObject> {
   @Override
   public @NonNull Page<NftMetadata> findAllNftTypes() {
     throw new RuntimeException("Not implemented");
+  }
+
+  @Override
+  public @NonNull Page<Block> queryBlocks() throws HieroException {
+    final String path = "/api/v1/blocks";
+    final Function<JsonObject, List<Block>> dataExtractionFunction =
+        node -> jsonConverter.toBlocks(node);
+    return new RestBasedPage<>(restClient.getTarget(), dataExtractionFunction, path);
   }
 }
