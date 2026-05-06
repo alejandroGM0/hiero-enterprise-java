@@ -14,6 +14,7 @@ import org.hiero.base.SmartContractClient;
 import org.hiero.base.config.HieroConfig;
 import org.hiero.base.implementation.AccountClientImpl;
 import org.hiero.base.implementation.AccountRepositoryImpl;
+import org.hiero.base.implementation.BalanceRepositoryImpl;
 import org.hiero.base.implementation.BlockRepositoryImpl;
 import org.hiero.base.implementation.ContractRepositoryImpl;
 import org.hiero.base.implementation.FileClientImpl;
@@ -27,6 +28,7 @@ import org.hiero.base.implementation.SmartContractClientImpl;
 import org.hiero.base.implementation.TokenRepositoryImpl;
 import org.hiero.base.implementation.TransactionRepositoryImpl;
 import org.hiero.base.mirrornode.AccountRepository;
+import org.hiero.base.mirrornode.BalanceRepository;
 import org.hiero.base.mirrornode.BlockRepository;
 import org.hiero.base.mirrornode.ContractRepository;
 import org.hiero.base.mirrornode.MirrorNodeClient;
@@ -180,6 +182,13 @@ public class ClientProvider {
   @ApplicationScoped
   TokenRepository createTokenRepository(@NonNull final MirrorNodeClient mirrorNodeClient) {
     return new TokenRepositoryImpl(mirrorNodeClient);
+  }
+
+  @NonNull
+  @Produces
+  @ApplicationScoped
+  BalanceRepository createBalanceRepository(@NonNull final MirrorNodeClient mirrorNodeClient) {
+    return new BalanceRepositoryImpl(mirrorNodeClient);
   }
 
   @NonNull
