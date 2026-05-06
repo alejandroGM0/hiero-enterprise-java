@@ -25,10 +25,9 @@ import org.jspecify.annotations.NonNull;
 
 public class MirrorNodeClientImpl extends AbstractMirrorNodeClient<JsonObject> {
 
-  private static final String ACCOUNTS_PATH = "/api/v1/accounts";
   private static final String TOKENS_PATH = "/api/v1/tokens";
+  private static final String ACCOUNTS_PATH = "/api/v1/accounts";
   private static final String NFTS_PATH = "/nfts";
-  private static final String ACCOUNT_ID_QUERY = "?account.id=";
 
   private final MirrorNodeRestClientImpl restClient;
 
@@ -64,7 +63,7 @@ public class MirrorNodeClientImpl extends AbstractMirrorNodeClient<JsonObject> {
       @NonNull AccountId accountId, @NonNull TokenId tokenId) throws HieroException {
     Objects.requireNonNull(accountId, "accountId must not be null");
     Objects.requireNonNull(tokenId, "tokenId must not be null");
-    final String path = TOKENS_PATH + "/" + tokenId + NFTS_PATH + ACCOUNT_ID_QUERY + accountId;
+    final String path = TOKENS_PATH + "/" + tokenId + NFTS_PATH + "?account.id=" + accountId;
     final Function<JsonObject, List<Nft>> dataExtractionFunction =
         node -> jsonConverter.toNfts(node);
     return new RestBasedPage<>(restClient.getTarget(), dataExtractionFunction, path);

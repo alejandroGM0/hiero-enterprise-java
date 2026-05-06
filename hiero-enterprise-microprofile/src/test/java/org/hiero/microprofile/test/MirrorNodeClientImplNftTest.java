@@ -4,17 +4,27 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.hedera.hashgraph.sdk.AccountId;
 import com.hedera.hashgraph.sdk.TokenId;
-import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpHandler;
-import com.sun.net.httpserver.HttpServer;
-import java.io.IOException;
-import java.net.InetSocketAddress;
+import jakarta.json.Json;
+import jakarta.json.JsonArray;
+import jakarta.json.JsonObject;
+import jakarta.ws.rs.client.Client;
+import jakarta.ws.rs.client.ClientBuilder;
+import jakarta.ws.rs.client.Invocation;
+import jakarta.ws.rs.client.WebTarget;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
 import org.hiero.base.HieroException;
 import org.hiero.base.data.Nft;
 import org.hiero.base.data.Page;
@@ -24,139 +34,132 @@ import org.hiero.microprofile.implementation.MirrorNodeRestClientImpl;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
 
 class MirrorNodeClientImplNftTest {
 
-  private static final String HOST = "127.0.0.1";
+  private static final String MOCK_TARGET = "http://mock-target";
   private static final String ACCOUNT_NFTS_PATH = "/api/v1/accounts/0.0.1001/nfts";
   private static final String TOKEN_NFTS_PATH = "/api/v1/tokens/0.0.2002/nfts";
-  private static final String TOKEN_NFTS_FOR_ACCOUNT_PATH =
-      TOKEN_NFTS_PATH + "?account.id=0.0.1001";
-  private static final String EMPTY_NFTS_RESPONSE = "{\"nfts\":[],\"links\":{\"next\":null}}";
   private static final String NFT_METADATA = "test NFT";
   private static final String NFT_METADATA_BASE64 = "dGVzdCBORlQ=";
-  private static final String CONTENT_TYPE_HEADER = "Content-Type";
-  private static final String APPLICATION_JSON = "application/json";
+  private static final AccountId ACCOUNT_ID = AccountId.fromString("0.0.1001");
+  private static final TokenId TOKEN_ID = TokenId.fromString("0.0.2002");
 
-  private HttpServer server;
-  private String baseUrl;
-  private final AtomicReference<String> lastRequestedPath = new AtomicReference<>();
+  private final MirrorNodeRestClientImpl restClient = mock(MirrorNodeRestClientImpl.class);
+  private final Client client = mock(Client.class);
+  private final WebTarget webTarget = mock(WebTarget.class);
+  private final Invocation.Builder requestBuilder = mock(Invocation.Builder.class);
+  private final Response response = mock(Response.class);
+  private MockedStatic<ClientBuilder> clientBuilderMock;
 
   @BeforeEach
-  void startServer() throws IOException {
-    server = HttpServer.create(new InetSocketAddress(HOST, 0), 0);
-    server.setExecutor(null);
-    server.start();
-    baseUrl = "http://" + HOST + ":" + server.getAddress().getPort();
+  void setUp() {
+    when(restClient.getTarget()).thenReturn(MOCK_TARGET);
+    clientBuilderMock = mockStatic(ClientBuilder.class);
+    clientBuilderMock.when(ClientBuilder::newClient).thenReturn(client);
+    when(client.target(MOCK_TARGET)).thenReturn(webTarget);
+    when(webTarget.path(anyString())).thenReturn(webTarget);
+    when(webTarget.queryParam(anyString(), any())).thenReturn(webTarget);
+    when(webTarget.request(MediaType.APPLICATION_JSON)).thenReturn(requestBuilder);
+    when(requestBuilder.get()).thenReturn(response);
+    when(response.readEntity(JsonObject.class)).thenReturn(emptyNftsResponse());
   }
 
   @AfterEach
-  void stopServer() {
-    if (server != null) {
-      server.stop(0);
+  void tearDown() {
+    if (clientBuilderMock != null) {
+      clientBuilderMock.close();
     }
   }
 
   @Test
   void queryNftsByAccountHitsExpectedPath() throws HieroException {
-    respondWith(EMPTY_NFTS_RESPONSE);
-
-    final MirrorNodeClientImpl client = newClient();
-    final Page<Nft> page = client.queryNftsByAccount(AccountId.fromString("0.0.1001"));
+    final Page<Nft> page = newClient().queryNftsByAccount(ACCOUNT_ID);
 
     assertNotNull(page);
     assertEquals(0, page.getSize());
-    assertEquals(ACCOUNT_NFTS_PATH, lastRequestedPath.get());
+    verify(client).target(MOCK_TARGET);
+    verify(webTarget).path(ACCOUNT_NFTS_PATH);
+    verify(webTarget, never()).queryParam(anyString(), any());
+    verify(requestBuilder).get();
   }
 
   @Test
   void queryNftsByTokenIdHitsExpectedPath() throws HieroException {
-    respondWith(EMPTY_NFTS_RESPONSE);
-
-    final MirrorNodeClientImpl client = newClient();
-    final Page<Nft> page = client.queryNftsByTokenId(TokenId.fromString("0.0.2002"));
+    final Page<Nft> page = newClient().queryNftsByTokenId(TOKEN_ID);
 
     assertNotNull(page);
     assertEquals(0, page.getSize());
-    assertEquals(TOKEN_NFTS_PATH, lastRequestedPath.get());
+    verify(webTarget).path(TOKEN_NFTS_PATH);
+    verify(webTarget, never()).queryParam(anyString(), any());
   }
 
   @Test
   void queryNftsByAccountAndTokenIdIncludesAccountFilter() throws HieroException {
-    respondWith(EMPTY_NFTS_RESPONSE);
-
-    final MirrorNodeClientImpl client = newClient();
-    final Page<Nft> page =
-        client.queryNftsByAccountAndTokenId(
-            AccountId.fromString("0.0.1001"), TokenId.fromString("0.0.2002"));
+    final Page<Nft> page = newClient().queryNftsByAccountAndTokenId(ACCOUNT_ID, TOKEN_ID);
 
     assertNotNull(page);
     assertEquals(0, page.getSize());
-    assertEquals(TOKEN_NFTS_FOR_ACCOUNT_PATH, lastRequestedPath.get());
+    verify(webTarget).path(TOKEN_NFTS_PATH);
+    verify(webTarget).queryParam("account.id", "0.0.1001");
   }
 
   @Test
   void queryNftsByAccountParsesResponse() throws HieroException {
-    final String body =
-        "{\"nfts\":[{"
-            + "\"account_id\":\"0.0.1001\","
-            + "\"created_timestamp\":\"1700000000.000000000\","
-            + "\"modified_timestamp\":\"1700000001.000000000\","
-            + "\"deleted\":false,"
-            + "\"metadata\":\""
-            + NFT_METADATA_BASE64
-            + "\","
-            + "\"serial_number\":1,"
-            + "\"token_id\":\"0.0.2002\""
-            + "}],\"links\":{\"next\":null}}";
-    respondWith(body);
+    when(response.readEntity(JsonObject.class)).thenReturn(singleNftResponse());
 
-    final MirrorNodeClientImpl client = newClient();
-    final Page<Nft> page = client.queryNftsByAccount(AccountId.fromString("0.0.1001"));
+    final Page<Nft> page = newClient().queryNftsByAccount(ACCOUNT_ID);
 
     assertEquals(1, page.getSize());
     final List<Nft> data = page.getData();
-    assertEquals(TokenId.fromString("0.0.2002"), data.get(0).tokenId());
+    assertEquals(TOKEN_ID, data.get(0).tokenId());
+    assertEquals(ACCOUNT_ID, data.get(0).owner());
     assertEquals(1L, data.get(0).serial());
     assertArrayEquals(NFT_METADATA.getBytes(StandardCharsets.UTF_8), data.get(0).metadata());
   }
 
   @Test
   void queryNftsByAccountRejectsNullInput() {
-    respondWith(EMPTY_NFTS_RESPONSE);
-
-    final MirrorNodeClientImpl client = newClient();
-    assertThrows(NullPointerException.class, () -> client.queryNftsByAccount((AccountId) null));
+    assertThrows(
+        NullPointerException.class, () -> newClient().queryNftsByAccount((AccountId) null));
+    verify(client, never()).target(anyString());
   }
 
   @Test
   void queryNftsByTokenIdRejectsNullInput() {
-    respondWith(EMPTY_NFTS_RESPONSE);
-
-    final MirrorNodeClientImpl client = newClient();
-    assertThrows(NullPointerException.class, () -> client.queryNftsByTokenId((TokenId) null));
+    assertThrows(NullPointerException.class, () -> newClient().queryNftsByTokenId((TokenId) null));
+    verify(client, never()).target(anyString());
   }
 
   private MirrorNodeClientImpl newClient() {
-    return new MirrorNodeClientImpl(
-        new MirrorNodeRestClientImpl(baseUrl), new MirrorNodeJsonConverterImpl());
+    return new MirrorNodeClientImpl(restClient, new MirrorNodeJsonConverterImpl());
   }
 
-  private void respondWith(final String body) {
-    final HttpHandler handler =
-        new HttpHandler() {
-          @Override
-          public void handle(final HttpExchange exchange) throws IOException {
-            final String path = exchange.getRequestURI().getRawPath();
-            final String query = exchange.getRequestURI().getRawQuery();
-            lastRequestedPath.set(query == null ? path : path + "?" + query);
-            final byte[] payload = body.getBytes(StandardCharsets.UTF_8);
-            exchange.getResponseHeaders().set(CONTENT_TYPE_HEADER, APPLICATION_JSON);
-            exchange.sendResponseHeaders(200, payload.length);
-            exchange.getResponseBody().write(payload);
-            exchange.close();
-          }
-        };
-    server.createContext("/", handler);
+  private static JsonObject emptyNftsResponse() {
+    return Json.createObjectBuilder()
+        .add("nfts", Json.createArrayBuilder().build())
+        .add("links", Json.createObjectBuilder().add("next", JsonObject.NULL).build())
+        .build();
+  }
+
+  private static JsonObject singleNftResponse() {
+    final JsonArray nfts =
+        Json.createArrayBuilder()
+            .add(
+                Json.createObjectBuilder()
+                    .add("account_id", "0.0.1001")
+                    .add("created_timestamp", "1700000000.000000000")
+                    .add("modified_timestamp", "1700000001.000000000")
+                    .add("deleted", false)
+                    .add("metadata", NFT_METADATA_BASE64)
+                    .add("serial_number", 1)
+                    .add("token_id", "0.0.2002")
+                    .build())
+            .build();
+    return Json.createObjectBuilder()
+        .add("nfts", nfts)
+        .add("links", Json.createObjectBuilder().add("next", JsonObject.NULL).build())
+        .build();
   }
 }
