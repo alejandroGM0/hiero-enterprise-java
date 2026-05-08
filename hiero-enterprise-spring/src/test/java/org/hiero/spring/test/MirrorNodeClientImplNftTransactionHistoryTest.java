@@ -1,58 +1,63 @@
 package org.hiero.spring.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.hedera.hashgraph.sdk.AccountId;
 import com.hedera.hashgraph.sdk.TokenId;
-import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpServer;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.net.InetSocketAddress;
+import java.net.URI;
 import java.time.Instant;
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Function;
 import org.hiero.base.data.NftTransactionTransfer;
 import org.hiero.base.data.Page;
 import org.hiero.base.protocol.data.TransactionType;
 import org.hiero.spring.implementation.MirrorNodeClientImpl;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.util.DefaultUriBuilderFactory;
+import org.springframework.web.util.UriBuilder;
 
 class MirrorNodeClientImplNftTransactionHistoryTest {
 
-  private HttpServer server;
-  private final List<String> requestedPaths = new CopyOnWriteArrayList<>();
-
-  @BeforeEach
-  void startServer() throws IOException {
-    server = HttpServer.create(new InetSocketAddress(0), 0);
-    server.start();
-  }
-
-  @AfterEach
-  void stopServer() {
-    server.stop(0);
-  }
-
+  @SuppressWarnings({"rawtypes", "unchecked"})
   @Test
   void queryNftTransactionHistoryCallsMirrorNodeEndpoint() throws Exception {
     final String expectedPath = "/api/v1/tokens/0.0.222/nfts/1/transactions";
-    server.createContext(
-        expectedPath,
-        exchange -> {
-          requestedPaths.add(exchange.getRequestURI().getPath());
-          respond(exchange, nftTransactionHistoryJson());
-        });
-    final MirrorNodeClientImpl client =
-        new MirrorNodeClientImpl(RestClient.builder().baseUrl(baseUrl()));
+    final RestClient.Builder configuredBuilder = mock(RestClient.Builder.class);
+    final RestClient configuredClient = mock(RestClient.class);
+    final RestClient.Builder pageBuilder = mock(RestClient.Builder.class);
+    final RestClient pageClient = mock(RestClient.class);
+    final RestClient.RequestHeadersUriSpec uriSpec = mock(RestClient.RequestHeadersUriSpec.class);
+    final RestClient.RequestHeadersSpec headersSpec = mock(RestClient.RequestHeadersSpec.class);
+    final RestClient.ResponseSpec responseSpec = mock(RestClient.ResponseSpec.class);
 
+    when(configuredBuilder.build()).thenReturn(configuredClient);
+    when(configuredClient.mutate()).thenReturn(pageBuilder);
+    when(pageBuilder.clone()).thenReturn(pageBuilder);
+    when(pageBuilder.build()).thenReturn(pageClient);
+    when(pageClient.get()).thenReturn(uriSpec);
+    when(uriSpec.uri(any(Function.class))).thenReturn(headersSpec);
+    when(headersSpec.accept(MediaType.APPLICATION_JSON)).thenReturn(headersSpec);
+    when(headersSpec.retrieve()).thenReturn(responseSpec);
+    when(responseSpec.toEntity(String.class))
+        .thenReturn(ResponseEntity.ok(nftTransactionHistoryJson()));
+
+    final MirrorNodeClientImpl client = new MirrorNodeClientImpl(configuredBuilder);
     final Page<NftTransactionTransfer> page =
         client.queryNftTransactionHistory(TokenId.fromString("0.0.222"), 1);
 
-    assertEquals(List.of(expectedPath), requestedPaths);
+    final ArgumentCaptor<Function<UriBuilder, URI>> uriCaptor =
+        ArgumentCaptor.forClass(Function.class);
+    verify(uriSpec).uri(uriCaptor.capture());
+    final URI requestUri =
+        uriCaptor.getValue().apply(new DefaultUriBuilderFactory("http://mirror-node").builder());
+    assertEquals("http://mirror-node" + expectedPath, requestUri.toString());
     assertEquals(1, page.getSize());
     final NftTransactionTransfer transfer = page.getData().get(0);
     assertEquals(Instant.ofEpochSecond(1_618_591_023L, 997_420_021), transfer.consensusTimestamp());
@@ -60,19 +65,6 @@ class MirrorNodeClientImplNftTransactionHistoryTest {
     assertEquals(AccountId.fromString("0.0.10"), transfer.senderAccountId());
     assertEquals("0.0.19789-1618591023-997420021", transfer.transactionId());
     assertEquals(TransactionType.CRYPTO_TRANSFER, transfer.type());
-  }
-
-  private String baseUrl() {
-    return "http://localhost:" + server.getAddress().getPort();
-  }
-
-  private static void respond(HttpExchange exchange, String body) throws IOException {
-    final byte[] bytes = body.getBytes();
-    exchange.getResponseHeaders().add("Content-Type", "application/json");
-    exchange.sendResponseHeaders(200, bytes.length);
-    try (OutputStream outputStream = exchange.getResponseBody()) {
-      outputStream.write(bytes);
-    }
   }
 
   private static String nftTransactionHistoryJson() {
