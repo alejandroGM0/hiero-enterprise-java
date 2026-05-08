@@ -24,6 +24,7 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import org.hiero.base.data.AccountInfo;
 import org.hiero.base.data.Balance;
+import org.hiero.base.data.Block;
 import org.hiero.base.data.ChunkInfo;
 import org.hiero.base.data.Contract;
 import org.hiero.base.data.CustomFee;
@@ -41,6 +42,7 @@ import org.hiero.base.data.Page;
 import org.hiero.base.data.RoyaltyFee;
 import org.hiero.base.data.SinglePage;
 import org.hiero.base.data.StakingRewardTransfer;
+import org.hiero.base.data.TimestampRange;
 import org.hiero.base.data.Token;
 import org.hiero.base.data.TokenInfo;
 import org.hiero.base.data.TokenTransfer;
@@ -156,6 +158,9 @@ public class MirrorNodeJsonConverterImpl implements MirrorNodeJsonConverter<Json
 
   @Override
   public Optional<AccountInfo> toAccountInfo(final JsonNode node) {
+    if (node.isNull() || node.isEmpty() || node.has("_status")) {
+      return Optional.empty();
+    }
     try {
       final AccountId accountId = AccountId.fromString(node.get("account").asText());
       final String evmAddress = node.get("evm_address").asText();
@@ -198,7 +203,7 @@ public class MirrorNodeJsonConverterImpl implements MirrorNodeJsonConverter<Json
   @Override
   public @NonNull Optional<TransactionInfo> toTransactionInfo(@NonNull JsonNode node) {
     Objects.requireNonNull(node, "jsonNode must not be null");
-    if (node.isNull() || node.isEmpty()) {
+    if (node.isNull() || node.isEmpty() || node.has("_status")) {
       return Optional.empty();
     }
 
@@ -580,7 +585,7 @@ public class MirrorNodeJsonConverterImpl implements MirrorNodeJsonConverter<Json
   @Override
   public @NonNull Optional<Topic> toTopic(JsonNode node) {
     Objects.requireNonNull(node, "jsonNode must not be null");
-    if (node.isNull() || node.isEmpty()) {
+    if (node.isNull() || node.isEmpty() || node.has("_status")) {
       return Optional.empty();
     }
 
@@ -656,7 +661,7 @@ public class MirrorNodeJsonConverterImpl implements MirrorNodeJsonConverter<Json
   @Override
   public @NonNull Optional<TopicMessage> toTopicMessage(JsonNode node) {
     Objects.requireNonNull(node, "jsonNode must not be null");
-    if (node.isNull() || node.isEmpty()) {
+    if (node.isNull() || node.isEmpty() || node.has("_status")) {
       return Optional.empty();
     }
     try {
@@ -717,7 +722,7 @@ public class MirrorNodeJsonConverterImpl implements MirrorNodeJsonConverter<Json
 
   private Optional<Token> toToken(JsonNode node) {
     Objects.requireNonNull(node, "jsonNode must not be null");
-    if (node.isNull() || node.isEmpty()) {
+    if (node.isNull() || node.isEmpty() || node.has("_status")) {
       return Optional.empty();
     }
 
@@ -959,5 +964,73 @@ public class MirrorNodeJsonConverterImpl implements MirrorNodeJsonConverter<Json
           throw new IllegalArgumentException(
               "Unsupported protobuf key type: " + protoKey.getKeyCase());
     };
+  }
+
+  @Override
+  public @NonNull Optional<Block> toBlock(@NonNull JsonNode node) {
+    Objects.requireNonNull(node, "jsonNode must not be null");
+    if (node.isNull() || node.isEmpty() || node.has("_status")) {
+      return Optional.empty();
+    }
+
+    try {
+      final long count = node.get("count").asLong();
+      final String hapiVersion = node.get("hapi_version").asText();
+      final String hash = node.get("hash").asText();
+      final String name = node.get("name").asText();
+      final long number = node.get("number").asLong();
+      final String previousHash = node.get("previous_hash").asText();
+      final long size = node.get("size").asLong();
+      final long gasUsed = node.get("gas_used").asLong();
+      final String logsBloom =
+          node.has("logs_bloom") && !node.get("logs_bloom").isNull()
+              ? node.get("logs_bloom").asText()
+              : null;
+
+      final Instant fromTimestamp =
+          Instant.ofEpochSecond(
+              node.get("timestamp").get("from").isNumber()
+                  ? node.get("timestamp").get("from").asLong()
+                  : Long.parseLong(node.get("timestamp").get("from").asText().split("\\.")[0]));
+      final Instant toTimestamp =
+          Instant.ofEpochSecond(
+              node.get("timestamp").get("to").isNumber()
+                  ? node.get("timestamp").get("to").asLong()
+                  : Long.parseLong(node.get("timestamp").get("to").asText().split("\\.")[0]));
+
+      return Optional.of(
+          new Block(
+              count,
+              hapiVersion,
+              hash,
+              name,
+              number,
+              previousHash,
+              size,
+              new TimestampRange(fromTimestamp, toTimestamp),
+              gasUsed,
+              logsBloom));
+    } catch (final Exception e) {
+      throw new JsonParseException(node, e);
+    }
+  }
+
+  @Override
+  public @NonNull List<Block> toBlocks(@NonNull JsonNode node) {
+    Objects.requireNonNull(node, "jsonNode must not be null");
+    if (!node.has("blocks")) {
+      return List.of();
+    }
+
+    final JsonNode blocks = node.get("blocks");
+    if (!blocks.isArray()) {
+      throw new IllegalArgumentException("Blocks node is not an array: " + blocks);
+    }
+
+    return jsonArrayToStream(blocks)
+        .map(n -> toBlock(n))
+        .filter(o -> o.isPresent())
+        .map(o -> o.get())
+        .toList();
   }
 }
