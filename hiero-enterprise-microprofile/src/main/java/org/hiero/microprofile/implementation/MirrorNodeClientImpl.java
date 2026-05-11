@@ -27,8 +27,6 @@ import org.jspecify.annotations.NonNull;
 
 public class MirrorNodeClientImpl extends AbstractMirrorNodeClient<JsonObject> {
 
-  private static final String SCHEDULES_PATH = "/api/v1/schedules";
-
   private final MirrorNodeRestClientImpl restClient;
 
   private final MirrorNodeJsonConverter<JsonObject> jsonConverter;
@@ -148,16 +146,17 @@ public class MirrorNodeClientImpl extends AbstractMirrorNodeClient<JsonObject> {
 
   @Override
   public @NonNull Page<Schedule> querySchedules() throws HieroException {
+    final String path = "/api/v1/schedules";
     final Function<JsonObject, List<Schedule>> dataExtractionFunction =
         node -> jsonConverter.toSchedules(node);
-    return new RestBasedPage<>(restClient.getTarget(), dataExtractionFunction, SCHEDULES_PATH);
+    return new RestBasedPage<>(restClient.getTarget(), dataExtractionFunction, path);
   }
 
   @Override
   public @NonNull Page<Schedule> querySchedulesByAccount(@NonNull AccountId accountId)
       throws HieroException {
     Objects.requireNonNull(accountId, "accountId must not be null");
-    final String path = SCHEDULES_PATH + "?account.id=" + accountId;
+    final String path = "/api/v1/schedules?account.id=" + accountId;
     final Function<JsonObject, List<Schedule>> dataExtractionFunction =
         node -> jsonConverter.toSchedules(node);
     return new RestBasedPage<>(restClient.getTarget(), dataExtractionFunction, path);
