@@ -57,24 +57,6 @@ import org.jspecify.annotations.NonNull;
 
 public class MirrorNodeJsonConverterImpl implements MirrorNodeJsonConverter<JsonObject> {
 
-  private static final String ADMIN_KEY = "admin_key";
-  private static final String CONSENSUS_TIMESTAMP = "consensus_timestamp";
-  private static final String CREATOR_ACCOUNT_ID = "creator_account_id";
-  private static final String DELETED = "deleted";
-  private static final String EXECUTED_TIMESTAMP = "executed_timestamp";
-  private static final String EXPIRATION_TIME = "expiration_time";
-  private static final String KEY = "key";
-  private static final String MEMO = "memo";
-  private static final String PAYER_ACCOUNT_ID = "payer_account_id";
-  private static final String PUBLIC_KEY_PREFIX = "public_key_prefix";
-  private static final String SCHEDULE_ID = "schedule_id";
-  private static final String SCHEDULES = "schedules";
-  private static final String SIGNATURE = "signature";
-  private static final String SIGNATURES = "signatures";
-  private static final String TRANSACTION_BODY = "transaction_body";
-  private static final String TYPE = "type";
-  private static final String WAIT_FOR_EXPIRY = "wait_for_expiry";
-
   @Override
   public @NonNull Optional<Nft> toNft(@NonNull JsonObject jsonObject) {
     if (jsonObject.isEmpty() || jsonObject.containsKey("_status")) {
@@ -976,21 +958,21 @@ public class MirrorNodeJsonConverterImpl implements MirrorNodeJsonConverter<Json
     }
 
     try {
-      final String transactionBody = stringOrNull(jsonObject, TRANSACTION_BODY);
+      final String transactionBody = stringOrNull(jsonObject, "transaction_body");
       return Optional.of(
           new Schedule(
-              ScheduleId.fromString(jsonObject.getString(SCHEDULE_ID)),
-              publicKeyOrNull(jsonObject, ADMIN_KEY),
-              jsonObject.getBoolean(DELETED),
-              parseTimestamp(jsonObject.getString(CONSENSUS_TIMESTAMP)),
-              AccountId.fromString(jsonObject.getString(CREATOR_ACCOUNT_ID)),
-              timestampOrNull(jsonObject, EXECUTED_TIMESTAMP),
-              timestampOrNull(jsonObject, EXPIRATION_TIME),
-              jsonObject.getString(MEMO),
-              accountIdOrNull(jsonObject, PAYER_ACCOUNT_ID),
-              scheduleSignatures(jsonObject.getJsonArray(SIGNATURES)),
+              ScheduleId.fromString(jsonObject.getString("schedule_id")),
+              publicKeyOrNull(jsonObject, "admin_key"),
+              jsonObject.getBoolean("deleted"),
+              parseTimestamp(jsonObject.getString("consensus_timestamp")),
+              AccountId.fromString(jsonObject.getString("creator_account_id")),
+              timestampOrNull(jsonObject, "executed_timestamp"),
+              timestampOrNull(jsonObject, "expiration_time"),
+              jsonObject.getString("memo"),
+              accountIdOrNull(jsonObject, "payer_account_id"),
+              scheduleSignatures(jsonObject.getJsonArray("signatures")),
               transactionBody == null ? null : Base64.getDecoder().decode(transactionBody),
-              jsonObject.getBoolean(WAIT_FOR_EXPIRY)));
+              jsonObject.getBoolean("wait_for_expiry")));
     } catch (final Exception e) {
       throw new IllegalStateException("Can not parse JSON: " + jsonObject, e);
     }
@@ -1032,10 +1014,10 @@ public class MirrorNodeJsonConverterImpl implements MirrorNodeJsonConverter<Json
   @Override
   public @NonNull List<Schedule> toSchedules(@NonNull JsonObject jsonObject) {
     Objects.requireNonNull(jsonObject, "jsonObject must not be null");
-    if (!jsonObject.containsKey(SCHEDULES)) {
+    if (!jsonObject.containsKey("schedules")) {
       return List.of();
     }
-    final JsonArray schedulesArray = jsonObject.getJsonArray(SCHEDULES);
+    final JsonArray schedulesArray = jsonObject.getJsonArray("schedules");
     if (schedulesArray == null) {
       throw new IllegalArgumentException("No schedules array in JSON");
     }
@@ -1057,10 +1039,10 @@ public class MirrorNodeJsonConverterImpl implements MirrorNodeJsonConverter<Json
     try {
       return Optional.of(
           new ScheduleSignature(
-              parseTimestamp(jsonObject.getString(CONSENSUS_TIMESTAMP)),
-              jsonObject.getString(PUBLIC_KEY_PREFIX),
-              jsonObject.getString(SIGNATURE),
-              jsonObject.getString(TYPE)));
+              parseTimestamp(jsonObject.getString("consensus_timestamp")),
+              jsonObject.getString("public_key_prefix"),
+              jsonObject.getString("signature"),
+              jsonObject.getString("type")));
     } catch (final Exception e) {
       throw new IllegalStateException("Can not parse JSON: " + jsonObject, e);
     }
@@ -1081,7 +1063,7 @@ public class MirrorNodeJsonConverterImpl implements MirrorNodeJsonConverter<Json
     if (!jsonObject.containsKey(fieldName) || jsonObject.isNull(fieldName)) {
       return null;
     }
-    return PublicKey.fromString(jsonObject.getJsonObject(fieldName).getString(KEY));
+    return PublicKey.fromString(jsonObject.getJsonObject(fieldName).getString("key"));
   }
 
   private AccountId accountIdOrNull(@NonNull JsonObject jsonObject, @NonNull String fieldName) {
