@@ -492,15 +492,16 @@ public class MirrorNodeJsonConverterImpl implements MirrorNodeJsonConverter<Json
     }
 
     try {
-      final JsonObject chunk = jsonObject.get("chunk_info").asJsonObject();
+      final JsonValue chunkValue = jsonObject.get("chunk_info");
       ChunkInfo chunkInfo = null;
-      if (chunk != null) {
+      if (chunkValue != null && chunkValue != JsonValue.NULL) {
+        final JsonObject chunk = chunkValue.asJsonObject();
         final TransactionId transactionId =
-            TransactionId.fromString(jsonObject.getString("initial_transaction_id"));
-        final int nonce = jsonObject.getInt("nonce");
-        final int number = jsonObject.getInt("number");
-        final int total = jsonObject.getInt("total");
-        final boolean scheduled = jsonObject.getBoolean("scheduled");
+            TransactionId.fromString(chunk.getString("initial_transaction_id"));
+        final int nonce = chunk.getInt("nonce");
+        final int number = chunk.getInt("number");
+        final int total = chunk.getInt("total");
+        final boolean scheduled = chunk.getBoolean("scheduled");
         chunkInfo = new ChunkInfo(transactionId, nonce, number, total, scheduled);
       }
 
