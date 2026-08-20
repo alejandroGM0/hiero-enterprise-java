@@ -3,6 +3,7 @@ package org.hiero.spring.implementation;
 import java.net.URI;
 import java.net.URL;
 import java.util.List;
+import java.util.Optional;
 import org.hiero.base.AccountClient;
 import org.hiero.base.FileClient;
 import org.hiero.base.FungibleTokenClient;
@@ -93,8 +94,9 @@ public class HieroAutoConfiguration {
   }
 
   @Bean
-  AccountClient accountClient(final ProtocolLayerClient protocolLayerClient) {
-    return new AccountClientImpl(protocolLayerClient);
+  AccountClient accountClient(
+      final ProtocolLayerClient protocolLayerClient, final HieroContext hieroContext) {
+    return new AccountClientImpl(protocolLayerClient, hieroContext.getOperatorAccount());
   }
 
   @Bean
@@ -125,7 +127,8 @@ public class HieroAutoConfiguration {
       name = "mirrorNodeSupported",
       havingValue = "true",
       matchIfMissing = true)
-  MirrorNodeClient mirrorNodeClient(final HieroContext hieroContext) {
+  MirrorNodeClient mirrorNodeClient(
+      final HieroContext hieroContext, final HieroProperties properties) {
     final String mirrorNodeEndpoint;
     final List<String> mirrorNetwork = hieroContext.getClient().getMirrorNetwork();
     if (mirrorNetwork.isEmpty()) {
@@ -160,7 +163,10 @@ public class HieroAutoConfiguration {
           "Error parsing mirrorNodeEndpoint '" + mirrorNodeEndpoint + "'", e);
     }
     RestClient.Builder builder = RestClient.builder().baseUrl(baseUri);
-    return new MirrorNodeClientImpl(builder);
+    Optional<String> mirrorNodeJavaRest =
+        Optional.ofNullable(properties.getNetwork().getMirrorNodeJavaRest())
+            .filter(s -> !s.isBlank());
+    return new MirrorNodeClientImpl(builder, mirrorNodeJavaRest);
   }
 
   @Bean

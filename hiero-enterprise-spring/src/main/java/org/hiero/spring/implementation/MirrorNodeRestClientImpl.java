@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Function;
 import org.hiero.base.HieroException;
 import org.hiero.base.implementation.MirrorNodeRestClient;
@@ -22,42 +23,69 @@ import org.springframework.web.util.UriBuilder;
 
 public class MirrorNodeRestClientImpl implements MirrorNodeRestClient<JsonNode> {
 
+  private static final String NETWORK_API_PREFIX = "/api/v1/network";
+
   private final ObjectMapper objectMapper;
 
   private final RestClient restClient;
 
+  private final RestClient networkRestClient;
+
   public MirrorNodeRestClientImpl(final RestClient.Builder restClientBuilder) {
+    this(restClientBuilder, Optional.empty());
+  }
+
+  public MirrorNodeRestClientImpl(
+      final RestClient.Builder restClientBuilder,
+      final Optional<String> mirrorNodeJavaRestBaseUrl) {
     Objects.requireNonNull(restClientBuilder, "restClientBuilder must not be null");
+    Objects.requireNonNull(mirrorNodeJavaRestBaseUrl, "mirrorNodeJavaRestBaseUrl must not be null");
     objectMapper = new ObjectMapper();
     restClient = restClientBuilder.build();
+    networkRestClient =
+        mirrorNodeJavaRestBaseUrl
+            .filter(s -> !s.isBlank())
+            .map(base -> RestClient.builder().baseUrl(base).build())
+            .orElse(null);
   }
 
   public JsonNode doGetCall(String path) throws HieroException {
-    return doGetCall(builder -> builder.path(path).build());
+    return doGetCall(resolveClient(path), builder -> builder.path(path).build());
   }
 
   public JsonNode doGetCall(Function<UriBuilder, URI> uriFunction) throws HieroException {
-    final ResponseEntity<String> responseEntity;
-    try {
-      responseEntity =
-          restClient
-              .get()
-              .uri(uriBuilder -> uriFunction.apply(uriBuilder))
-              .accept(MediaType.APPLICATION_JSON)
-              .retrieve()
-              .onStatus(
-                  HttpStatusCode::is4xxClientError,
-                  (request, response) -> {
-                    if (!HttpStatus.NOT_FOUND.equals(response.getStatusCode())
-                        && !HttpStatus.BAD_REQUEST.equals(response.getStatusCode())) {
-                      handleError(request, response);
-                    }
-                  })
-              .onStatus(HttpStatusCode::is5xxServerError, this::handleError)
-              .toEntity(String.class);
-    } catch (RestClientException e) {
-      throw new HieroException("Mirror Node call failed", e);
+    return doGetCall(restClient, uriFunction);
+  }
+
+  private RestClient resolveClient(String path) {
+    if (networkRestClient != null && path.startsWith(NETWORK_API_PREFIX)) {
+      return networkRestClient;
     }
+    return restClient;
+  }
+
+  private JsonNode doGetCall(RestClient client, Function<UriBuilder, URI> uriFunction)
+      throws HieroException {
+    final ResponseEntity<String> responseEntity =
+        client
+            .get()
+            .uri(uriBuilder -> uriFunction.apply(uriBuilder))
+            .accept(MediaType.APPLICATION_JSON)
+            .retrieve()
+            .onStatus(
+                HttpStatusCode::is4xxClientError,
+                (request, response) -> {
+                  if (!HttpStatus.NOT_FOUND.equals(response.getStatusCode())
+                      && !HttpStatus.BAD_REQUEST.equals(response.getStatusCode())) {
+                    throw new RuntimeException("Client error: " + response.getStatusText());
+                  }
+                })
+            .onStatus(
+                HttpStatusCode::is5xxServerError,
+                (request, response) -> {
+                  throw new RuntimeException("Server error: " + response.getStatusText());
+                })
+            .toEntity(String.class);
     final String body = responseEntity.getBody();
     try {
       if (HttpStatus.NOT_FOUND.equals(responseEntity.getStatusCode())

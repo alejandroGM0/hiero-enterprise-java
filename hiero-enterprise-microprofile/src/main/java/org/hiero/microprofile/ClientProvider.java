@@ -111,8 +111,10 @@ public class ClientProvider {
   @NonNull
   @Produces
   @ApplicationScoped
-  AccountClient createAccountClient(@NonNull final ProtocolLayerClient protocolLayerClient) {
-    return new AccountClientImpl(protocolLayerClient);
+  AccountClient createAccountClient(
+      @NonNull final ProtocolLayerClient protocolLayerClient,
+      @NonNull final HieroContext hieroContext) {
+    return new AccountClientImpl(protocolLayerClient, hieroContext.getOperatorAccount());
   }
 
   @NonNull
@@ -147,7 +149,8 @@ public class ClientProvider {
         hieroConfig.getMirrorNodeAddresses().stream()
             .findFirst()
             .orElseThrow(() -> new IllegalStateException("No mirror node addresses configured"));
-    final MirrorNodeRestClientImpl restClient = new MirrorNodeRestClientImpl(target);
+    final MirrorNodeRestClientImpl restClient =
+        new MirrorNodeRestClientImpl(target, networkConfiguration.getMirrorNodeJavaRest());
     final MirrorNodeJsonConverterImpl jsonConverter = new MirrorNodeJsonConverterImpl();
     return new MirrorNodeClientImpl(restClient, jsonConverter);
   }
