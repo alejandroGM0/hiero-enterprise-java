@@ -29,9 +29,7 @@ public class MirrorNodeJsonConverterImplTest {
   private static final long SERIAL = 1L;
   private static final byte[] METADATA = "https://example.com/nft/1".getBytes();
   private static final String METADATA_BASE64 = Base64.getEncoder().encodeToString(METADATA);
-  // The microprofile converter stores metadata as the raw Base64 string bytes (not decoded),
-  // consistent with how it handles metadata throughout the module.
-  private static final byte[] EXPECTED_METADATA_BYTES = METADATA_BASE64.getBytes();
+  private static final byte[] EXPECTED_METADATA_BYTES = METADATA;
 
   @BeforeEach
   void setUp() {

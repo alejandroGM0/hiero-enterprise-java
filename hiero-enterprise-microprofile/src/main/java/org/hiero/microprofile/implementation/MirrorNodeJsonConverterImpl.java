@@ -70,7 +70,7 @@ public class MirrorNodeJsonConverterImpl implements MirrorNodeJsonConverter<Json
               ? null
               : AccountId.fromString(jsonObject.getString("account_id"));
       final long serial = jsonObject.getJsonNumber("serial_number").longValue();
-      final byte[] metadata = jsonObject.getString("metadata").getBytes();
+      final byte[] metadata = Base64.getDecoder().decode(jsonObject.getString("metadata"));
       return Optional.of(new Nft(parsedTokenId, serial, account, metadata));
     } catch (final Exception e) {
       throw new IllegalStateException("Can not parse JSON: " + jsonObject, e);
