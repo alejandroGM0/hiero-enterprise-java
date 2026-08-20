@@ -3,19 +3,23 @@ package org.hiero.spring.implementation;
 import java.net.URI;
 import java.net.URL;
 import java.util.List;
+import java.util.Optional;
 import org.hiero.base.AccountClient;
 import org.hiero.base.FileClient;
 import org.hiero.base.FungibleTokenClient;
 import org.hiero.base.HieroContext;
+import org.hiero.base.HookClient;
 import org.hiero.base.NftClient;
 import org.hiero.base.SmartContractClient;
 import org.hiero.base.TopicClient;
 import org.hiero.base.config.HieroConfig;
 import org.hiero.base.implementation.AccountClientImpl;
 import org.hiero.base.implementation.AccountRepositoryImpl;
+import org.hiero.base.implementation.BlockRepositoryImpl;
 import org.hiero.base.implementation.ContractRepositoryImpl;
 import org.hiero.base.implementation.FileClientImpl;
 import org.hiero.base.implementation.FungibleTokenClientImpl;
+import org.hiero.base.implementation.HookClientImpl;
 import org.hiero.base.implementation.NetworkRepositoryImpl;
 import org.hiero.base.implementation.NftClientImpl;
 import org.hiero.base.implementation.NftRepositoryImpl;
@@ -27,6 +31,7 @@ import org.hiero.base.implementation.TopicRepositoryImpl;
 import org.hiero.base.implementation.TransactionRepositoryImpl;
 import org.hiero.base.interceptors.ReceiveRecordInterceptor;
 import org.hiero.base.mirrornode.AccountRepository;
+import org.hiero.base.mirrornode.BlockRepository;
 import org.hiero.base.mirrornode.ContractRepository;
 import org.hiero.base.mirrornode.MirrorNodeClient;
 import org.hiero.base.mirrornode.NetworkRepository;
@@ -89,8 +94,9 @@ public class HieroAutoConfiguration {
   }
 
   @Bean
-  AccountClient accountClient(final ProtocolLayerClient protocolLayerClient) {
-    return new AccountClientImpl(protocolLayerClient);
+  AccountClient accountClient(
+      final ProtocolLayerClient protocolLayerClient, final HieroContext hieroContext) {
+    return new AccountClientImpl(protocolLayerClient, hieroContext.getOperatorAccount());
   }
 
   @Bean
@@ -111,12 +117,18 @@ public class HieroAutoConfiguration {
   }
 
   @Bean
+  HookClient hookClient(final ProtocolLayerClient protocolLayerClient) {
+    return new HookClientImpl(protocolLayerClient);
+  }
+
+  @Bean
   @ConditionalOnProperty(
       prefix = "spring.hiero",
       name = "mirrorNodeSupported",
       havingValue = "true",
       matchIfMissing = true)
-  MirrorNodeClient mirrorNodeClient(final HieroContext hieroContext) {
+  MirrorNodeClient mirrorNodeClient(
+      final HieroContext hieroContext, final HieroProperties properties) {
     final String mirrorNodeEndpoint;
     final List<String> mirrorNetwork = hieroContext.getClient().getMirrorNetwork();
     if (mirrorNetwork.isEmpty()) {
@@ -129,12 +141,14 @@ public class HieroAutoConfiguration {
       final String mirrorNodeEndpointProtocol = url.getProtocol();
       final String mirrorNodeEndpointHost = url.getHost();
       final int mirrorNodeEndpointPort;
-      if (mirrorNodeEndpointProtocol == "https" && url.getPort() == -1) {
-        mirrorNodeEndpointPort = 443;
-      } else if (mirrorNodeEndpointProtocol == "http" && url.getPort() == -1) {
-        mirrorNodeEndpointPort = 80;
-      } else if (url.getPort() == -1) {
-        mirrorNodeEndpointPort = 443;
+      if (url.getPort() == -1) {
+        if ("http".equalsIgnoreCase(mirrorNodeEndpointProtocol)) {
+          mirrorNodeEndpointPort = 80;
+        } else if ("https".equalsIgnoreCase(mirrorNodeEndpointProtocol)) {
+          mirrorNodeEndpointPort = 443;
+        } else {
+          throw new IllegalArgumentException("Unsupported protocol: " + mirrorNodeEndpointProtocol);
+        }
       } else {
         mirrorNodeEndpointPort = url.getPort();
       }
@@ -149,7 +163,10 @@ public class HieroAutoConfiguration {
           "Error parsing mirrorNodeEndpoint '" + mirrorNodeEndpoint + "'", e);
     }
     RestClient.Builder builder = RestClient.builder().baseUrl(baseUri);
-    return new MirrorNodeClientImpl(builder);
+    Optional<String> mirrorNodeJavaRest =
+        Optional.ofNullable(properties.getNetwork().getMirrorNodeJavaRest())
+            .filter(s -> !s.isBlank());
+    return new MirrorNodeClientImpl(builder, mirrorNodeJavaRest);
   }
 
   @Bean
@@ -225,5 +242,15 @@ public class HieroAutoConfiguration {
   @Bean
   ContractVerificationClient contractVerificationClient(final HieroConfig hieroConfig) {
     return new ContractVerificationClientImplementation(hieroConfig);
+  }
+
+  @Bean
+  @ConditionalOnProperty(
+      prefix = "spring.hiero",
+      name = "mirrorNodeSupported",
+      havingValue = "true",
+      matchIfMissing = true)
+  BlockRepository blockRepository(final MirrorNodeClient mirrorNodeClient) {
+    return new BlockRepositoryImpl(mirrorNodeClient);
   }
 }

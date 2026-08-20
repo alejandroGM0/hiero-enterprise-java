@@ -2,6 +2,7 @@ package org.hiero.base.test;
 
 import com.hedera.hashgraph.sdk.AccountId;
 import com.hedera.hashgraph.sdk.Hbar;
+import com.hedera.hashgraph.sdk.Status;
 import org.hiero.base.HieroException;
 import org.hiero.base.data.Account;
 import org.hiero.base.implementation.ProtocolLayerClientImpl;
@@ -11,6 +12,10 @@ import org.hiero.base.protocol.data.AccountBalanceResponse;
 import org.hiero.base.protocol.data.AccountCreateRequest;
 import org.hiero.base.protocol.data.AccountCreateResult;
 import org.hiero.base.protocol.data.AccountDeleteRequest;
+import org.hiero.base.protocol.data.AccountInfoRequest;
+import org.hiero.base.protocol.data.AccountInfoResponse;
+import org.hiero.base.protocol.data.AccountUpdateRequest;
+import org.hiero.base.protocol.data.AccountUpdateResult;
 import org.hiero.base.test.config.HieroTestContext;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -68,6 +73,61 @@ public class ProtocolLayerClientAccountTests {
   }
 
   @Test
+  void testAccountInfoRequest() throws Exception {
+    // given
+    final AccountCreateResult accountCreateResult =
+        protocolLayerClient.executeAccountCreateTransaction(AccountCreateRequest.of(Hbar.from(1L)));
+    final AccountId accountId = accountCreateResult.newAccount().accountId();
+
+    // when
+    final AccountInfoRequest accountInfoRequest = AccountInfoRequest.of(accountId);
+    final AccountInfoResponse accountInfoResponse =
+        protocolLayerClient.executeAccountInfoQuery(accountInfoRequest);
+
+    // then
+    Assertions.assertNotNull(accountInfoResponse);
+    Assertions.assertEquals(accountId, accountInfoResponse.accountId());
+    Assertions.assertEquals(Hbar.from(1L), accountInfoResponse.balance());
+    Assertions.assertFalse(accountInfoResponse.deleted());
+    Assertions.assertNotNull(accountInfoResponse.key());
+    Assertions.assertNotNull(accountInfoResponse.expirationTime());
+    Assertions.assertNotNull(accountInfoResponse.autoRenewPeriod());
+    Assertions.assertNotNull(accountInfoResponse.accountMemo());
+  }
+
+  @Test
+  void testAccountInfoRequestForDeletedAccount() throws Exception {
+    // given
+    final AccountCreateResult accountCreateResult =
+        protocolLayerClient.executeAccountCreateTransaction(AccountCreateRequest.of());
+    final Account account = accountCreateResult.newAccount();
+    protocolLayerClient.executeAccountDeleteTransaction(AccountDeleteRequest.of(account));
+
+    Assertions.assertThrows(
+        HieroException.class,
+        () ->
+            protocolLayerClient.executeAccountInfoQuery(
+                AccountInfoRequest.of(account.accountId())));
+  }
+
+  @Test
+  void testAccountInfoRequestReflectsMemoUpdate() throws Exception {
+    // given
+    final AccountCreateResult accountCreateResult =
+        protocolLayerClient.executeAccountCreateTransaction(AccountCreateRequest.of());
+    final Account account = accountCreateResult.newAccount();
+    protocolLayerClient.executeAccountUpdateTransaction(
+        AccountUpdateRequest.updateMemo(account, "updated-memo"));
+
+    // when
+    final AccountInfoResponse accountInfoResponse =
+        protocolLayerClient.executeAccountInfoQuery(AccountInfoRequest.of(account.accountId()));
+
+    // then
+    Assertions.assertEquals("updated-memo", accountInfoResponse.accountMemo());
+  }
+
+  @Test
   void testAccountBalanceRequestForNotExistingAccount() throws Exception {
     // given
     final AccountCreateRequest accountCreateRequest = AccountCreateRequest.of();
@@ -85,5 +145,21 @@ public class ProtocolLayerClientAccountTests {
     Assertions.assertThrows(
         HieroException.class,
         () -> protocolLayerClient.executeAccountBalanceQuery(accountBalanceRequest));
+  }
+
+  @Test
+  void testAccountUpdateMemoRequest() throws Exception {
+    // given
+    final AccountCreateResult accountCreateResult =
+        protocolLayerClient.executeAccountCreateTransaction(AccountCreateRequest.of());
+    final Account account = accountCreateResult.newAccount();
+    final AccountUpdateRequest request = AccountUpdateRequest.updateMemo(account, "updated-memo");
+
+    // when
+    final AccountUpdateResult result = protocolLayerClient.executeAccountUpdateTransaction(request);
+
+    // then
+    Assertions.assertNotNull(result);
+    Assertions.assertEquals(Status.SUCCESS, result.status());
   }
 }

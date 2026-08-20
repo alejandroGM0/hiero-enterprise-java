@@ -7,12 +7,15 @@ import com.hedera.hashgraph.sdk.TokenId;
 import com.hedera.hashgraph.sdk.TopicId;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Function;
 import org.hiero.base.HieroException;
 import org.hiero.base.data.Balance;
 import org.hiero.base.data.BalanceModification;
+import org.hiero.base.data.Block;
 import org.hiero.base.data.Nft;
 import org.hiero.base.data.NftMetadata;
+import org.hiero.base.data.Node;
 import org.hiero.base.data.Page;
 import org.hiero.base.data.Result;
 import org.hiero.base.data.Token;
@@ -41,8 +44,24 @@ public class MirrorNodeClientImpl extends AbstractMirrorNodeClient<JsonNode> {
    * @param restClientBuilder the builder for the REST client that must have the base URL set
    */
   public MirrorNodeClientImpl(final RestClient.Builder restClientBuilder) {
+    this(restClientBuilder, Optional.empty());
+  }
+
+  /**
+   * Constructor with optional REST-Java base URL for {@code /api/v1/network/*} (mirror-node
+   * 0.15x+).
+   *
+   * @param restClientBuilder builder with Node REST base URL (e.g. port 38081)
+   * @param mirrorNodeJavaRestBaseUrl optional base URL for REST-Java (e.g. {@code
+   *     http://localhost:8084})
+   */
+  public MirrorNodeClientImpl(
+      final RestClient.Builder restClientBuilder,
+      final Optional<String> mirrorNodeJavaRestBaseUrl) {
     Objects.requireNonNull(restClientBuilder, "restClientBuilder must not be null");
-    mirrorNodeRestClient = new MirrorNodeRestClientImpl(restClientBuilder);
+    Objects.requireNonNull(mirrorNodeJavaRestBaseUrl, "mirrorNodeJavaRestBaseUrl must not be null");
+    mirrorNodeRestClient =
+        new MirrorNodeRestClientImpl(restClientBuilder, mirrorNodeJavaRestBaseUrl);
     jsonConverter = new MirrorNodeJsonConverterImpl();
     objectMapper = new ObjectMapper();
     restClient = restClientBuilder.build();
@@ -181,5 +200,36 @@ public class MirrorNodeClientImpl extends AbstractMirrorNodeClient<JsonNode> {
   @Override
   public @NonNull Page<NftMetadata> findAllNftTypes() {
     throw new UnsupportedOperationException("Not yet implemented");
+  }
+
+  @Override
+  public @NonNull Page<Block> queryBlocks() throws HieroException {
+    final String path = "/api/v1/blocks";
+    final Function<JsonNode, List<Block>> dataExtractionFunction =
+        node -> jsonConverter.toBlocks(node);
+    return new RestBasedPage<>(
+        objectMapper, restClient.mutate().clone(), path, dataExtractionFunction);
+  }
+
+  @Override
+  public @NonNull Page<Node> queryNetworkNodes() throws HieroException {
+    final String path = "/api/v1/network/nodes";
+    final Function<JsonNode, List<Node>> dataExtractionFunction =
+        node -> jsonConverter.toNodes(node);
+    return new RestBasedPage<>(
+        objectMapper, restClient.mutate().clone(), path, dataExtractionFunction);
+  }
+
+  @Override
+  public @NonNull Optional<Node> queryNetworkNodeById(long nodeId) throws HieroException {
+
+    final String path = "/api/v1/network/nodes?node.id=" + nodeId;
+
+    final Function<JsonNode, List<Node>> dataExtractionFunction =
+        node -> jsonConverter.toNodes(node);
+
+    return new RestBasedPage<>(
+            objectMapper, restClient.mutate().clone(), path, dataExtractionFunction)
+        .getData().stream().findFirst();
   }
 }

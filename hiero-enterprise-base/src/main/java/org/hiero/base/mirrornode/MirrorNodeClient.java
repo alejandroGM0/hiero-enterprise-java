@@ -11,6 +11,7 @@ import org.hiero.base.HieroException;
 import org.hiero.base.data.AccountInfo;
 import org.hiero.base.data.Balance;
 import org.hiero.base.data.BalanceModification;
+import org.hiero.base.data.Block;
 import org.hiero.base.data.Contract;
 import org.hiero.base.data.ExchangeRates;
 import org.hiero.base.data.NetworkFee;
@@ -18,6 +19,7 @@ import org.hiero.base.data.NetworkStake;
 import org.hiero.base.data.NetworkSupplies;
 import org.hiero.base.data.Nft;
 import org.hiero.base.data.NftMetadata;
+import org.hiero.base.data.Node;
 import org.hiero.base.data.Page;
 import org.hiero.base.data.Result;
 import org.hiero.base.data.Token;
@@ -142,7 +144,7 @@ public interface MirrorNodeClient {
   default Optional<Nft> queryNftsByAccountAndTokenIdAndSerial(
       @NonNull AccountId accountId, @NonNull TokenId tokenId, long serialNumber)
       throws HieroException {
-    Objects.requireNonNull(accountId, "newAccountId must not be null");
+    Objects.requireNonNull(accountId, "accountId must not be null");
     return queryNftsByTokenIdAndSerial(tokenId, serialNumber)
         .filter(nft -> Objects.equals(nft.owner(), accountId));
   }
@@ -471,4 +473,47 @@ public interface MirrorNodeClient {
     Objects.requireNonNull(contractId, "contractId must not be null");
     return queryContractById(ContractId.fromString(contractId));
   }
+
+  /**
+   * Queries all blocks.
+   *
+   * @return the blocks
+   * @throws HieroException if an error occurs
+   */
+  @NonNull Page<Block> queryBlocks() throws HieroException;
+
+  /**
+   * Queries a block by its number.
+   *
+   * @param number the block number
+   * @return the block information
+   * @throws HieroException if an error occurs
+   */
+  @NonNull Optional<Block> queryBlockByNumber(long number) throws HieroException;
+
+  /**
+   * Queries a block by its hash.
+   *
+   * @param hash the block hash
+   * @return the block information
+   * @throws HieroException if an error occurs
+   */
+  @NonNull Optional<Block> queryBlockByHash(@NonNull String hash) throws HieroException;
+
+  /**
+   * Queries all network nodes.
+   *
+   * @return the nodes
+   * @throws HieroException if an error occurs
+   */
+  @NonNull Page<Node> queryNetworkNodes() throws HieroException;
+
+  /**
+   * Queries a network node by its ID.
+   *
+   * @param nodeId the node ID
+   * @return the node information
+   * @throws HieroException if an error occurs
+   */
+  @NonNull Optional<Node> queryNetworkNodeById(long nodeId) throws HieroException;
 }
