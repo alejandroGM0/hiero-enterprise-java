@@ -22,9 +22,6 @@ import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.web.client.RestClient;
 
 public class ContractVerificationClientImplementation implements ContractVerificationClient {
-
-  private static final String CONTRACT_VERIFICATION_URL = "https://server-verify.hashscan.io";
-
   private record VerifyRequest(
       String address,
       String chain,
@@ -34,16 +31,15 @@ public class ContractVerificationClientImplementation implements ContractVerific
 
   private final HieroConfig hieroConfig;
 
-  private final ObjectMapper objectMapper;
-
   private final RestClient restClient;
 
+  private final ObjectMapper objectMapper;
+
   public ContractVerificationClientImplementation(
-      @NonNull final HieroConfig hieroConfig, final RestClient.Builder restClientBuilder) {
+      @NonNull final HieroConfig hieroConfig, @NonNull final RestClient restClient) {
     this.hieroConfig = Objects.requireNonNull(hieroConfig, "hieroConfig must not be null");
+    this.restClient = Objects.requireNonNull(restClient, "restClient must not be null");
     objectMapper = new ObjectMapper();
-    restClient =
-        Objects.requireNonNull(restClientBuilder, "restClientBuilder must not be null").build();
   }
 
   @NonNull
@@ -105,7 +101,7 @@ public class ContractVerificationClientImplementation implements ContractVerific
       final String resultBody =
           restClient
               .post()
-              .uri(CONTRACT_VERIFICATION_URL + "/verify")
+              .uri("/verify")
               .contentType(APPLICATION_JSON)
               .accept(APPLICATION_JSON)
               .body(verifyRequest)
@@ -155,10 +151,9 @@ public class ContractVerificationClientImplementation implements ContractVerific
     Objects.requireNonNull(contractId, "contractId must not be null");
 
     final String uri =
-        CONTRACT_VERIFICATION_URL
-            + "/check-by-addresses"
+        "/check-by-addresses"
             + "?addresses="
-            + contractId.toSolidityAddress()
+            + contractId.toEvmAddress()
             + "&chainIds="
             + getChainId();
 
@@ -228,8 +223,7 @@ public class ContractVerificationClientImplementation implements ContractVerific
       throw new IllegalStateException("Contract is not verified");
     }
 
-    final String uri =
-        CONTRACT_VERIFICATION_URL + "/files/" + getChainId() + "/" + contractId.toSolidityAddress();
+    final String uri = "/files/" + getChainId() + "/" + contractId.toEvmAddress();
 
     try {
       final String resultBody =
