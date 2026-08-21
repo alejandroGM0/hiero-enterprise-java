@@ -4,12 +4,14 @@ import java.util.List;
 import java.util.Optional;
 import org.hiero.base.data.AccountInfo;
 import org.hiero.base.data.Balance;
+import org.hiero.base.data.Block;
 import org.hiero.base.data.Contract;
 import org.hiero.base.data.ExchangeRates;
 import org.hiero.base.data.NetworkFee;
 import org.hiero.base.data.NetworkStake;
 import org.hiero.base.data.NetworkSupplies;
 import org.hiero.base.data.Nft;
+import org.hiero.base.data.Node;
 import org.hiero.base.data.Page;
 import org.hiero.base.data.Token;
 import org.hiero.base.data.TokenInfo;
@@ -54,4 +56,10 @@ public interface MirrorNodeJsonConverter<JSON> {
   @NonNull Page<Contract> toContractPage(@NonNull JSON json);
 
   @NonNull List<Contract> toContracts(@NonNull JSON json);
+
+  @NonNull Optional<Block> toBlock(@NonNull JSON json);
+
+  @NonNull List<Block> toBlocks(@NonNull JSON json);
+
+  @NonNull List<Node> toNodes(@NonNull JSON json);
 }

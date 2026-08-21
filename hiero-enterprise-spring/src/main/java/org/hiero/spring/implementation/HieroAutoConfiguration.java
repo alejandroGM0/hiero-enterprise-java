@@ -38,7 +38,6 @@ import org.hiero.base.protocol.ProtocolLayerClient;
 import org.hiero.base.verification.ContractVerificationClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -95,8 +94,9 @@ public class HieroAutoConfiguration {
   }
 
   @Bean
-  AccountClient accountClient(final ProtocolLayerClient protocolLayerClient) {
-    return new AccountClientImpl(protocolLayerClient);
+  AccountClient accountClient(
+      final ProtocolLayerClient protocolLayerClient, final HieroContext hieroContext) {
+    return new AccountClientImpl(protocolLayerClient, hieroContext.getOperatorAccount());
   }
 
   @Bean
@@ -117,13 +117,18 @@ public class HieroAutoConfiguration {
   }
 
   @Bean
+  HookClient hookClient(final ProtocolLayerClient protocolLayerClient) {
+    return new HookClientImpl(protocolLayerClient);
+  }
+
+  @Bean
   @ConditionalOnProperty(
       prefix = "spring.hiero",
       name = "mirrorNodeSupported",
       havingValue = "true",
       matchIfMissing = true)
   MirrorNodeClient mirrorNodeClient(
-      final HieroContext hieroContext,
+      final HieroContext hieroContext, final HieroProperties properties,
       final ObjectProvider<RestClient.Builder> restClientBuilderProvider) {
     final String mirrorNodeEndpoint;
     final List<String> mirrorNetwork = hieroContext.getClient().getMirrorNetwork();
@@ -137,12 +142,14 @@ public class HieroAutoConfiguration {
       final String mirrorNodeEndpointProtocol = url.getProtocol();
       final String mirrorNodeEndpointHost = url.getHost();
       final int mirrorNodeEndpointPort;
-      if (mirrorNodeEndpointProtocol == "https" && url.getPort() == -1) {
-        mirrorNodeEndpointPort = 443;
-      } else if (mirrorNodeEndpointProtocol == "http" && url.getPort() == -1) {
-        mirrorNodeEndpointPort = 80;
-      } else if (url.getPort() == -1) {
-        mirrorNodeEndpointPort = 443;
+      if (url.getPort() == -1) {
+        if ("http".equalsIgnoreCase(mirrorNodeEndpointProtocol)) {
+          mirrorNodeEndpointPort = 80;
+        } else if ("https".equalsIgnoreCase(mirrorNodeEndpointProtocol)) {
+          mirrorNodeEndpointPort = 443;
+        } else {
+          throw new IllegalArgumentException("Unsupported protocol: " + mirrorNodeEndpointProtocol);
+        }
       } else {
         mirrorNodeEndpointPort = url.getPort();
       }
@@ -156,6 +163,11 @@ public class HieroAutoConfiguration {
       throw new IllegalArgumentException(
           "Error parsing mirrorNodeEndpoint '" + mirrorNodeEndpoint + "'", e);
     }
+    RestClient.Builder builder = RestClient.builder().baseUrl(baseUri);
+    Optional<String> mirrorNodeJavaRest =
+        Optional.ofNullable(properties.getNetwork().getMirrorNodeJavaRest())
+            .filter(s -> !s.isBlank());
+    return new MirrorNodeClientImpl(builder, mirrorNodeJavaRest);
     RestClient.Builder builder =
         restClientBuilder(restClientBuilderProvider).clone().baseUrl(baseUri);
     return new MirrorNodeClientImpl(builder);
@@ -237,5 +249,15 @@ public class HieroAutoConfiguration {
       final ObjectProvider<RestClient.Builder> restClientBuilderProvider) {
     return new ContractVerificationClientImplementation(
         hieroConfig, restClientBuilder(restClientBuilderProvider));
+  }
+
+  @Bean
+  @ConditionalOnProperty(
+      prefix = "spring.hiero",
+      name = "mirrorNodeSupported",
+      havingValue = "true",
+      matchIfMissing = true)
+  BlockRepository blockRepository(final MirrorNodeClient mirrorNodeClient) {
+    return new BlockRepositoryImpl(mirrorNodeClient);
   }
 }

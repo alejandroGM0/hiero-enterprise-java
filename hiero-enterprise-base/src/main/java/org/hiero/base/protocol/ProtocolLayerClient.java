@@ -8,6 +8,10 @@ import org.hiero.base.protocol.data.AccountCreateRequest;
 import org.hiero.base.protocol.data.AccountCreateResult;
 import org.hiero.base.protocol.data.AccountDeleteRequest;
 import org.hiero.base.protocol.data.AccountDeleteResult;
+import org.hiero.base.protocol.data.AccountHookUpdateRequest;
+import org.hiero.base.protocol.data.AccountHookUpdateResult;
+import org.hiero.base.protocol.data.AccountInfoRequest;
+import org.hiero.base.protocol.data.AccountInfoResponse;
 import org.hiero.base.protocol.data.AccountUpdateRequest;
 import org.hiero.base.protocol.data.AccountUpdateResult;
 import org.hiero.base.protocol.data.ContractCallRequest;
@@ -28,18 +32,32 @@ import org.hiero.base.protocol.data.FileInfoRequest;
 import org.hiero.base.protocol.data.FileInfoResponse;
 import org.hiero.base.protocol.data.FileUpdateRequest;
 import org.hiero.base.protocol.data.FileUpdateResult;
+import org.hiero.base.protocol.data.HbarAllowanceApproveRequest;
+import org.hiero.base.protocol.data.HbarAllowanceApproveResult;
+import org.hiero.base.protocol.data.HbarTransferRequest;
+import org.hiero.base.protocol.data.HbarTransferResult;
+import org.hiero.base.protocol.data.HookStoreRequest;
+import org.hiero.base.protocol.data.HookStoreResult;
+import org.hiero.base.protocol.data.NftAllowanceDeleteRequest;
+import org.hiero.base.protocol.data.NftAllowanceDeleteResult;
 import org.hiero.base.protocol.data.TokenAssociateRequest;
 import org.hiero.base.protocol.data.TokenAssociateResult;
 import org.hiero.base.protocol.data.TokenBurnRequest;
 import org.hiero.base.protocol.data.TokenBurnResult;
 import org.hiero.base.protocol.data.TokenCreateRequest;
 import org.hiero.base.protocol.data.TokenCreateResult;
+import org.hiero.base.protocol.data.TokenDeleteRequest;
+import org.hiero.base.protocol.data.TokenDeleteResult;
 import org.hiero.base.protocol.data.TokenDissociateRequest;
 import org.hiero.base.protocol.data.TokenDissociateResult;
 import org.hiero.base.protocol.data.TokenMintRequest;
 import org.hiero.base.protocol.data.TokenMintResult;
 import org.hiero.base.protocol.data.TokenTransferRequest;
 import org.hiero.base.protocol.data.TokenTransferResult;
+import org.hiero.base.protocol.data.TokenUpdateNftsRequest;
+import org.hiero.base.protocol.data.TokenUpdateNftsResult;
+import org.hiero.base.protocol.data.TokenUpdateRequest;
+import org.hiero.base.protocol.data.TokenUpdateResult;
 import org.hiero.base.protocol.data.TopicCreateRequest;
 import org.hiero.base.protocol.data.TopicCreateResult;
 import org.hiero.base.protocol.data.TopicDeleteRequest;
@@ -63,6 +81,16 @@ public interface ProtocolLayerClient {
    * @throws HieroException if the query could not be executed
    */
   @NonNull AccountBalanceResponse executeAccountBalanceQuery(@NonNull AccountBalanceRequest request)
+      throws HieroException;
+
+  /**
+   * Execute an account info query.
+   *
+   * @param request the request
+   * @return the response containing information about the account
+   * @throws HieroException if the query could not be executed
+   */
+  @NonNull AccountInfoResponse executeAccountInfoQuery(@NonNull AccountInfoRequest request)
       throws HieroException;
 
   /**
@@ -176,6 +204,19 @@ public interface ProtocolLayerClient {
       @NonNull AccountDeleteRequest request) throws HieroException;
 
   /**
+   * Executes an account hook update transaction.
+   *
+   * @param request the request containing hooks to create and hooks to delete on an account
+   * @return the result of the account hook update transaction
+   * @throws HieroException if the transaction could not be executed
+   */
+  @NonNull
+  default AccountHookUpdateResult executeAccountHookUpdateTransaction(
+      @NonNull AccountHookUpdateRequest request) throws HieroException {
+    throw new UnsupportedOperationException("Account hook update transaction is not implemented.");
+  }
+
+  /**
    * Executes an account update transaction.
    *
    * @param request the request containing the details of the account update transaction
@@ -194,6 +235,36 @@ public interface ProtocolLayerClient {
    */
   @NonNull TokenCreateResult executeTokenCreateTransaction(
       @NonNull final TokenCreateRequest request) throws HieroException;
+
+  /**
+   * Executes a token delete transaction.
+   *
+   * @param request the request containing the details of the token delete transaction
+   * @return the result of the token delete transaction
+   * @throws HieroException if the transaction could not be executed
+   */
+  @NonNull TokenDeleteResult executeTokenDeleteTransaction(
+      @NonNull final TokenDeleteRequest request) throws HieroException;
+
+  /**
+   * Executes a token update transaction.
+   *
+   * @param request the request containing the details of the token update transaction
+   * @return the result of the token update transaction
+   * @throws HieroException if the transaction could not be executed
+   */
+  @NonNull TokenUpdateResult executeTokenUpdateTransaction(
+      @NonNull final TokenUpdateRequest request) throws HieroException;
+
+  /**
+   * Executes a token update NFTs transaction (updates metadata for NFT serials).
+   *
+   * @param request the request containing the details of the NFT metadata update
+   * @return the result of the NFT metadata update transaction
+   * @throws HieroException if the transaction could not be executed
+   */
+  @NonNull TokenUpdateNftsResult executeTokenUpdateNftsTransaction(
+      @NonNull final TokenUpdateNftsRequest request) throws HieroException;
 
   /**
    * Executes a token associate transaction.
@@ -244,6 +315,46 @@ public interface ProtocolLayerClient {
    */
   @NonNull TokenTransferResult executeTransferTransaction(
       @NonNull final TokenTransferRequest request) throws HieroException;
+
+  /**
+   * Executes an HBAR transfer transaction.
+   *
+   * @param request the request containing the details of the HBAR transfer transaction
+   * @return the result of the HBAR transfer transaction
+   * @throws HieroException if the transaction could not be executed
+   */
+  @NonNull HbarTransferResult executeHbarTransferTransaction(
+      @NonNull final HbarTransferRequest request) throws HieroException;
+
+  /**
+   * Executes an HBAR allowance approve transaction.
+   *
+   * @param request the request containing the details of the allowance approve transaction
+   * @return the result of the allowance approve transaction
+   * @throws HieroException if the transaction could not be executed
+   */
+  @NonNull HbarAllowanceApproveResult executeHbarAllowanceApproveTransaction(
+      @NonNull final HbarAllowanceApproveRequest request) throws HieroException;
+
+  /**
+   * Executes an NFT allowance delete transaction.
+   *
+   * @param request the request containing the details of the NFT allowance delete transaction
+   * @return the result of the NFT allowance delete transaction
+   * @throws HieroException if the transaction could not be executed
+   */
+  @NonNull NftAllowanceDeleteResult executeNftAllowanceDeleteTransaction(
+      @NonNull final NftAllowanceDeleteRequest request) throws HieroException;
+
+  /**
+   * Executes a hook store transaction.
+   *
+   * @param request the request containing the details of the hook store transaction
+   * @return the result of the hook store transaction
+   * @throws HieroException if the transaction could not be executed
+   */
+  @NonNull HookStoreResult executeHookStoreTransaction(@NonNull final HookStoreRequest request)
+      throws HieroException;
 
   /**
    * Executes a topic create transaction.
