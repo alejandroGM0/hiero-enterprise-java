@@ -388,12 +388,16 @@ public class MirrorNodeJsonConverterImpl implements MirrorNodeJsonConverter<Json
       final Instant consensusTimestamp = parseInstant(node.get("consensus_timestamp").asText());
       final boolean isApproval = node.get("is_approval").asBoolean();
       final int nonce = node.get("nonce").asInt();
-      final AccountId receiverAccountId = node.hasNonNull("receiver_account_id")? AccountId.fromString(node.get("receiver_account_id").asText()) : null;
-      final AccountId senderAccountId = node.hasNonNull("sender_account_id")? AccountId.fromString(node.get("sender_account_id").asText()) : null;
+      final AccountId receiverAccountId =
+          node.hasNonNull("receiver_account_id")
+              ? AccountId.fromString(node.get("receiver_account_id").asText())
+              : null;
+      final AccountId senderAccountId =
+          node.hasNonNull("sender_account_id")
+              ? AccountId.fromString(node.get("sender_account_id").asText())
+              : null;
       final String transactionId = node.get("transaction_id").asText();
       final TransactionType transactionType = TransactionType.from(node.get("type").asText());
-
-
 
       return Optional.of(
           new NftTransactionTransfer(
@@ -403,8 +407,7 @@ public class MirrorNodeJsonConverterImpl implements MirrorNodeJsonConverter<Json
               receiverAccountId,
               senderAccountId,
               transactionId,
-              transactionType
-          ));
+              transactionType));
     } catch (final Exception e) {
       throw new JsonParseException(node, e);
     }
