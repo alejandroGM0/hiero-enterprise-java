@@ -41,8 +41,6 @@ public class NftRepositoryTest {
 
   @Inject private NftClient nftClient;
 
-  @Inject private NftRepository nftRepository;
-
   @Inject private AccountClient accountClient;
 
   @Inject private NftRepository nftRepository;
@@ -50,8 +48,6 @@ public class NftRepositoryTest {
   @Inject private HieroContext hieroContext;
 
   @Test
-  void findTransactionHistory() throws Exception {
-    // given
   void findMintedNftsByType() throws Exception {
     final NftFixture fixture = createMintedNftFixture();
 
@@ -115,34 +111,21 @@ public class NftRepositoryTest {
   private NftFixture createMintedNftFixture() throws Exception {
     final String name = "Tokemon cards";
     final String symbol = "TOK";
-    final byte[] metadata = "https://example.com/metadata1".getBytes(StandardCharsets.UTF_8);
     final byte[] metadata1 = "https://example.com/metadata1".getBytes(StandardCharsets.UTF_8);
     final byte[] metadata2 = "https://example.com/metadata2".getBytes(StandardCharsets.UTF_8);
     final TokenId tokenId = nftClient.createNftType(name, symbol);
-    final long serial = nftClient.mintNft(tokenId, metadata);
-    final AccountId adminAccountId = hieroContext.getOperatorAccount().accountId();
-    final PrivateKey adminAccountPrivateKey = hieroContext.getOperatorAccount().privateKey();
     final List<Long> serials = nftClient.mintNfts(tokenId, metadata1, metadata2);
     final Account account = accountClient.createAccount();
     final AccountId newOwner = account.accountId();
-    final PrivateKey newOwnerPrivateKey = account.privateKey();
-    nftClient.associateNft(tokenId, newOwner, newOwnerPrivateKey);
-    nftClient.transferNft(tokenId, serial, adminAccountId, adminAccountPrivateKey, newOwner);
-    // TODO: fix sleep
 
     nftClient.associateNft(tokenId, account);
     nftClient.transferNft(tokenId, serials.get(0), hieroContext.getOperatorAccount(), newOwner);
     nftClient.transferNft(tokenId, serials.get(1), hieroContext.getOperatorAccount(), newOwner);
     Thread.sleep(10_000);
 
-    // when
-    final Page<NftTransactionTransfer> slice =
-        nftRepository.findTransactionHistory(tokenId, serial);
     return new NftFixture(tokenId, serials, newOwner, metadata1, metadata2);
   }
 
-    // then
-    Assertions.assertNotNull(slice);
   private record NftFixture(
       TokenId tokenId, List<Long> serials, AccountId owner, byte[] metadata1, byte[] metadata2) {}
 
@@ -153,13 +136,8 @@ public class NftRepositoryTest {
       final AccountId owner,
       final byte[] metadata) {
     Assertions.assertTrue(
-        slice.getData().stream()
         nfts.stream()
             .anyMatch(
-                transfer ->
-                    TransactionType.CRYPTO_TRANSFER.equals(transfer.type())
-                        && adminAccountId.equals(transfer.senderAccountId())
-                        && newOwner.equals(transfer.receiverAccountId())));
                 nft ->
                     tokenId.equals(nft.tokenId())
                         && serial == nft.serial()
@@ -167,4 +145,38 @@ public class NftRepositoryTest {
                         && Arrays.equals(metadata, nft.metadata())),
         "Expected NFT " + tokenId + "/" + serial + " for owner " + owner);
   }
+
+  @Test
+  void findTransactionHistory() throws Exception {
+    // given
+    final String name = "Tokemon cards";
+    final String symbol = "TOK";
+    final byte[] metadata = "https://example.com/metadata1".getBytes(StandardCharsets.UTF_8);
+    final TokenId tokenId = nftClient.createNftType(name, symbol);
+    final long serial = nftClient.mintNft(tokenId, metadata);
+    final AccountId adminAccountId = hieroContext.getOperatorAccount().accountId();
+    final PrivateKey adminAccountPrivateKey = hieroContext.getOperatorAccount().privateKey();
+    final Account account = accountClient.createAccount();
+    final AccountId newOwner = account.accountId();
+    final PrivateKey newOwnerPrivateKey = account.privateKey();
+    nftClient.associateNft(tokenId, newOwner, newOwnerPrivateKey);
+    nftClient.transferNft(tokenId, serial, adminAccountId, adminAccountPrivateKey, newOwner);
+
+    Thread.sleep(10_000);
+
+    // when
+    final Page<NftTransactionTransfer> slice =
+        nftRepository.findTransactionHistory(tokenId, serial);
+
+    // then
+    Assertions.assertNotNull(slice);
+    Assertions.assertTrue(
+        slice.getData().stream()
+            .anyMatch(
+                transfer ->
+                    TransactionType.CRYPTO_TRANSFER.equals(transfer.type())
+                        && adminAccountId.equals(transfer.senderAccountId())
+                        && newOwner.equals(transfer.receiverAccountId())));
+  }
 }
+
