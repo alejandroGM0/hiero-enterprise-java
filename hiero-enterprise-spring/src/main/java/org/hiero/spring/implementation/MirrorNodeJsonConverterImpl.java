@@ -385,15 +385,26 @@ public class MirrorNodeJsonConverterImpl implements MirrorNodeJsonConverter<Json
       return Optional.empty();
     }
     try {
+      final Instant consensusTimestamp = parseInstant(node.get("consensus_timestamp").asText());
+      final boolean isApproval = node.get("is_approval").asBoolean();
+      final int nonce = node.get("nonce").asInt();
+      final AccountId receiverAccountId = node.hasNonNull("receiver_account_id")? AccountId.fromString(node.get("receiver_account_id").asText()) : null;
+      final AccountId senderAccountId = node.hasNonNull("sender_account_id")? AccountId.fromString(node.get("sender_account_id").asText()) : null;
+      final String transactionId = node.get("transaction_id").asText();
+      final TransactionType transactionType = TransactionType.from(node.get("type").asText());
+
+
+
       return Optional.of(
           new NftTransactionTransfer(
-              parseTimestamp(node.get("consensus_timestamp")),
-              node.get("is_approval").asBoolean(),
-              node.get("nonce").asInt(),
-              accountIdOrNull(node, "receiver_account_id"),
-              accountIdOrNull(node, "sender_account_id"),
-              node.get("transaction_id").asText(),
-              TransactionType.from(node.get("type").asText())));
+              consensusTimestamp,
+              isApproval,
+              nonce,
+              receiverAccountId,
+              senderAccountId,
+              transactionId,
+              transactionType
+          ));
     } catch (final Exception e) {
       throw new JsonParseException(node, e);
     }
@@ -1034,59 +1045,6 @@ public class MirrorNodeJsonConverterImpl implements MirrorNodeJsonConverter<Json
 
       final Long rewardRateStart =
           node.hasNonNull("reward_rate_start") ? node.get("reward_rate_start").asLong() : null;
-  private String textOrNull(@NonNull JsonNode node, @NonNull String fieldName) {
-    final JsonNode field = node.get(fieldName);
-    if (field == null || field.isNull()) {
-      return null;
-    }
-    return field.asText();
-  }
-
-  private Long longOrNull(@NonNull JsonNode node, @NonNull String fieldName) {
-    final JsonNode field = node.get(fieldName);
-    if (field == null || field.isNull()) {
-      return null;
-    }
-    return field.asLong();
-  }
-
-  private Integer intOrNull(@NonNull JsonNode node, @NonNull String fieldName) {
-    final JsonNode field = node.get(fieldName);
-    if (field == null || field.isNull()) {
-      return null;
-    }
-    return field.asInt();
-  }
-
-  private ContractId contractIdOrNull(@NonNull JsonNode node, @NonNull String fieldName) {
-    final String value = textOrNull(node, fieldName);
-    return value == null ? null : ContractId.fromString(value);
-  }
-
-  private AccountId accountIdOrNull(@NonNull JsonNode node, @NonNull String fieldName) {
-    final String value = textOrNull(node, fieldName);
-    return value == null ? null : AccountId.fromString(value);
-  }
-
-  private Instant parseTimestamp(@NonNull JsonNode node) {
-    final String value = node.asText();
-    final String[] parts = value.split("\\.", 2);
-    final long seconds = Long.parseLong(parts[0]);
-    final int nanos;
-    if (parts.length == 1) {
-      nanos = 0;
-    } else {
-      final String paddedNanos = (parts[1] + "000000000").substring(0, 9);
-      nanos = Integer.parseInt(paddedNanos);
-    }
-    return Instant.ofEpochSecond(seconds, nanos);
-  }
-
-  private @NonNull Key parseProtoBufEncodedKey(@NonNull String key) throws Exception {
-    Objects.requireNonNull(key, "key must not be null");
-    final byte[] bytes = HexFormat.of().parseHex(key);
-    final com.hedera.hashgraph.sdk.proto.Key protoKey =
-        com.hedera.hashgraph.sdk.proto.Key.parseFrom(bytes);
 
       final boolean declineReward =
           node.has("decline_reward") && node.get("decline_reward").asBoolean();
