@@ -441,8 +441,14 @@ public class MirrorNodeJsonConverterImpl implements MirrorNodeJsonConverter<Json
       final Instant consensusTimestamp = parseInstant(jsonObject.getString("consensus_timestamp"));
       final boolean isApproval = jsonObject.getBoolean("is_approval");
       final int nonce = jsonObject.getInt("nonce");
-      final AccountId receiverAccountId = hasNonNull(jsonObject, "receiver_account_id")? AccountId.fromString(jsonObject.getString("receiver_account_id")) : null;
-      final AccountId senderAccountId = hasNonNull(jsonObject, "sender_account_id")? AccountId.fromString(jsonObject.getString("sender_account_id")) : null;
+      final AccountId receiverAccountId =
+          hasNonNull(jsonObject, "receiver_account_id")
+              ? AccountId.fromString(jsonObject.getString("receiver_account_id"))
+              : null;
+      final AccountId senderAccountId =
+          hasNonNull(jsonObject, "sender_account_id")
+              ? AccountId.fromString(jsonObject.getString("sender_account_id"))
+              : null;
       final String transactionId = jsonObject.getString("transaction_id");
       final TransactionType transactionType = TransactionType.from(jsonObject.getString("type"));
 
@@ -454,8 +460,7 @@ public class MirrorNodeJsonConverterImpl implements MirrorNodeJsonConverter<Json
               receiverAccountId,
               senderAccountId,
               transactionId,
-              transactionType
-          ));
+              transactionType));
     } catch (final Exception e) {
       throw new IllegalStateException("Can not parse JSON: " + jsonObject, e);
     }

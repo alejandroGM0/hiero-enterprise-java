@@ -179,4 +179,3 @@ public class NftRepositoryTest {
                         && newOwner.equals(transfer.receiverAccountId())));
   }
 }
-
