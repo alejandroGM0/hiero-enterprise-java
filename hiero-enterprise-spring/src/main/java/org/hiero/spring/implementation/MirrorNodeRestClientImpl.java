@@ -86,7 +86,7 @@ public class MirrorNodeRestClientImpl implements MirrorNodeRestClient<JsonNode> 
                     throw createRestException(request, response);
                   })
               .toEntity(String.class);
-  
+
       final String body = responseEntity.getBody();
       try {
         if (HttpStatus.NOT_FOUND.equals(responseEntity.getStatusCode())
@@ -104,7 +104,7 @@ public class MirrorNodeRestClientImpl implements MirrorNodeRestClient<JsonNode> 
       throw new HieroException("Mirror Node call failed", e);
     }
   }
-  
+
   private RuntimeException createRestException(
       final HttpRequest request, final ClientHttpResponse response) {
     try {
@@ -112,7 +112,7 @@ public class MirrorNodeRestClientImpl implements MirrorNodeRestClient<JsonNode> 
     } catch (IOException e) {
       return new RuntimeException(e);
     }
-  
+
     throw new IllegalStateException("handleError should always throw");
   }
 
