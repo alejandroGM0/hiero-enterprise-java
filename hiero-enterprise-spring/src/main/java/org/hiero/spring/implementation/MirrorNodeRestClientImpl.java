@@ -3,16 +3,20 @@ package org.hiero.spring.implementation;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.IOException;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import org.hiero.base.HieroException;
 import org.hiero.base.implementation.MirrorNodeRestClient;
+import org.springframework.http.HttpRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.util.UriBuilder;
 
@@ -61,38 +65,66 @@ public class MirrorNodeRestClientImpl implements MirrorNodeRestClient<JsonNode> 
 
   private JsonNode doGetCall(RestClient client, Function<UriBuilder, URI> uriFunction)
       throws HieroException {
-    final ResponseEntity<String> responseEntity =
-        client
-            .get()
-            .uri(uriBuilder -> uriFunction.apply(uriBuilder))
-            .accept(MediaType.APPLICATION_JSON)
-            .retrieve()
-            .onStatus(
-                HttpStatusCode::is4xxClientError,
-                (request, response) -> {
-                  if (!HttpStatus.NOT_FOUND.equals(response.getStatusCode())
-                      && !HttpStatus.BAD_REQUEST.equals(response.getStatusCode())) {
-                    throw new RuntimeException("Client error: " + response.getStatusText());
-                  }
-                })
-            .onStatus(
-                HttpStatusCode::is5xxServerError,
-                (request, response) -> {
-                  throw new RuntimeException("Server error: " + response.getStatusText());
-                })
-            .toEntity(String.class);
-    final String body = responseEntity.getBody();
     try {
-      if (HttpStatus.NOT_FOUND.equals(responseEntity.getStatusCode())
-          || HttpStatus.BAD_REQUEST.equals(responseEntity.getStatusCode())) {
-        return objectMapper.readTree("{}");
+      final ResponseEntity<String> responseEntity =
+          client
+              .get()
+              .uri(uriBuilder -> uriFunction.apply(uriBuilder))
+              .accept(MediaType.APPLICATION_JSON)
+              .retrieve()
+              .onStatus(
+                  HttpStatusCode::is4xxClientError,
+                  (request, response) -> {
+                    if (!HttpStatus.NOT_FOUND.equals(response.getStatusCode())
+                        && !HttpStatus.BAD_REQUEST.equals(response.getStatusCode())) {
+                      throw createRestException(request, response);
+                    }
+                  })
+              .onStatus(
+                  HttpStatusCode::is5xxServerError,
+                  (request, response) -> {
+                    throw createRestException(request, response);
+                  })
+              .toEntity(String.class);
+
+      final String body = responseEntity.getBody();
+      try {
+        if (HttpStatus.NOT_FOUND.equals(responseEntity.getStatusCode())
+            || HttpStatus.BAD_REQUEST.equals(responseEntity.getStatusCode())) {
+          return objectMapper.readTree("{}");
+        }
+        if (body == null || body.isBlank()) {
+          return objectMapper.readTree("{}");
+        }
+        return objectMapper.readTree(body);
+      } catch (JsonProcessingException e) {
+        throw new HieroException("Error parsing body as JSON: " + body, e);
       }
-      if (body == null || body.isBlank()) {
-        return objectMapper.readTree("{}");
-      }
-      return objectMapper.readTree(body);
-    } catch (JsonProcessingException e) {
-      throw new HieroException("Error parsing body as JSON: " + body, e);
+    } catch (RuntimeException e) {
+      throw new HieroException("Mirror Node call failed", e);
     }
+  }
+
+  private RuntimeException createRestException(
+      final HttpRequest request, final ClientHttpResponse response) {
+    try {
+      handleError(request, response);
+    } catch (IOException e) {
+      return new RuntimeException(e);
+    }
+
+    throw new IllegalStateException("handleError should always throw");
+  }
+
+  private void handleError(final HttpRequest request, final ClientHttpResponse response)
+      throws IOException {
+    final String body = new String(response.getBody().readAllBytes(), StandardCharsets.UTF_8);
+    throw new IOException(
+        "Mirror Node call failed with status "
+            + response.getStatusCode()
+            + " for request '"
+            + request.getURI()
+            + "': "
+            + body);
   }
 }
