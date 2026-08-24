@@ -17,7 +17,6 @@ import org.hiero.base.data.Block;
 import org.hiero.base.data.Contract;
 import org.hiero.base.data.ExchangeRates;
 import org.hiero.base.data.NetworkFee;
-import org.hiero.base.data.NetworkNode;
 import org.hiero.base.data.NetworkStake;
 import org.hiero.base.data.NetworkSupplies;
 import org.hiero.base.data.Nft;
@@ -289,10 +288,6 @@ public interface MirrorNodeClient {
     Objects.requireNonNull(accountId, "accountId must not be null");
     return queryBalancesByAccount(AccountId.fromString(accountId));
   }
-
-  @NonNull Page<NetworkNode> queryNetworkNodes() throws HieroException;
-
-  @NonNull Optional<NetworkNode> queryNetworkNodeById(long nodeId) throws HieroException;
 
   /**
    * Return Tokens associated with given accountId.
