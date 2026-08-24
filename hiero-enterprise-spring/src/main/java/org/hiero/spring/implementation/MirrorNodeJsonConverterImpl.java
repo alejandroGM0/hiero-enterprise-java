@@ -40,7 +40,6 @@ import org.hiero.base.data.NftTransfer;
 import org.hiero.base.data.Node;
 import org.hiero.base.data.Page;
 import org.hiero.base.data.RoyaltyFee;
-import org.hiero.base.data.ServiceEndpoint;
 import org.hiero.base.data.SinglePage;
 import org.hiero.base.data.StakingRewardTransfer;
 import org.hiero.base.data.TimestampRange;
