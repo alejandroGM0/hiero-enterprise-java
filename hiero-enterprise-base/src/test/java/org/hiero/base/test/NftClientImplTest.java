@@ -34,6 +34,8 @@ import org.hiero.base.protocol.data.TokenUpdateNftsRequest;
 import org.hiero.base.protocol.data.TokenUpdateNftsResult;
 import org.hiero.base.protocol.data.TokenUpdateRequest;
 import org.hiero.base.protocol.data.TokenUpdateResult;
+import org.hiero.base.protocol.data.TokenWipeRequest;
+import org.hiero.base.protocol.data.TokenWipeResult;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -51,6 +53,8 @@ public class NftClientImplTest {
       ArgumentCaptor.forClass(TokenTransferRequest.class);
   ArgumentCaptor<TokenBurnRequest> tokenBurnCaptor =
       ArgumentCaptor.forClass(TokenBurnRequest.class);
+  ArgumentCaptor<TokenWipeRequest> tokenWipeCaptor =
+      ArgumentCaptor.forClass(TokenWipeRequest.class);
   ArgumentCaptor<TokenAssociateRequest> tokenAssociateCaptor =
       ArgumentCaptor.forClass(TokenAssociateRequest.class);
   ArgumentCaptor<TokenDissociateRequest> tokenDissociateCaptor =
@@ -423,12 +427,14 @@ public class NftClientImplTest {
 
     final TokenId tokenId = TokenId.fromString("1.2.3");
     final long serials = 1L;
+    final long totalSupply = 0L;
 
     when(operationalAccount.privateKey()).thenReturn(privateKey);
+    when(tokenBurnRequest.totalSupply()).thenReturn(totalSupply);
     when(protocolLayerClient.executeBurnTokenTransaction(any(TokenBurnRequest.class)))
         .thenReturn(tokenBurnRequest);
 
-    nftClientImpl.burnNft(tokenId, serials);
+    final long result = nftClientImpl.burnNft(tokenId, serials);
 
     verify(operationalAccount, times(1)).privateKey();
     verify(protocolLayerClient, times(1)).executeBurnTokenTransaction(tokenBurnCaptor.capture());
@@ -437,6 +443,7 @@ public class NftClientImplTest {
     Assertions.assertEquals(tokenId, request.tokenId());
     Assertions.assertEquals(Set.of(serials), request.serials());
     Assertions.assertEquals(privateKey, request.supplyKey());
+    Assertions.assertEquals(totalSupply, result);
   }
 
   @Test
@@ -446,11 +453,13 @@ public class NftClientImplTest {
     final TokenId tokenId = TokenId.fromString("1.2.3");
     final long serials = 1L;
     final PrivateKey privateKey = PrivateKey.generateECDSA();
+    final long totalSupply = 0L;
 
+    when(tokenBurnRequest.totalSupply()).thenReturn(totalSupply);
     when(protocolLayerClient.executeBurnTokenTransaction(any(TokenBurnRequest.class)))
         .thenReturn(tokenBurnRequest);
 
-    nftClientImpl.burnNft(tokenId, serials, privateKey);
+    final long result = nftClientImpl.burnNft(tokenId, serials, privateKey);
 
     verify(protocolLayerClient, times(1)).executeBurnTokenTransaction(tokenBurnCaptor.capture());
 
@@ -458,6 +467,7 @@ public class NftClientImplTest {
     Assertions.assertEquals(tokenId, request.tokenId());
     Assertions.assertEquals(Set.of(serials), request.serials());
     Assertions.assertEquals(privateKey, request.supplyKey());
+    Assertions.assertEquals(totalSupply, result);
   }
 
   @Test
@@ -467,12 +477,14 @@ public class NftClientImplTest {
 
     final TokenId tokenId = TokenId.fromString("1.2.3");
     final Set<Long> serials = Set.of(1L);
+    final long totalSupply = 0L;
 
     when(operationalAccount.privateKey()).thenReturn(privateKey);
+    when(tokenBurnRequest.totalSupply()).thenReturn(totalSupply);
     when(protocolLayerClient.executeBurnTokenTransaction(any(TokenBurnRequest.class)))
         .thenReturn(tokenBurnRequest);
 
-    nftClientImpl.burnNfts(tokenId, serials);
+    final long result = nftClientImpl.burnNfts(tokenId, serials);
 
     verify(operationalAccount, times(1)).privateKey();
     verify(protocolLayerClient, times(1)).executeBurnTokenTransaction(tokenBurnCaptor.capture());
@@ -481,6 +493,7 @@ public class NftClientImplTest {
     Assertions.assertEquals(tokenId, request.tokenId());
     Assertions.assertEquals(serials, request.serials());
     Assertions.assertEquals(privateKey, request.supplyKey());
+    Assertions.assertEquals(totalSupply, result);
   }
 
   @Test
@@ -490,11 +503,13 @@ public class NftClientImplTest {
     final TokenId tokenId = TokenId.fromString("1.2.3");
     final Set<Long> serials = Set.of(1L);
     final PrivateKey privateKey = PrivateKey.generateECDSA();
+    final long totalSupply = 0L;
 
+    when(tokenBurnRequest.totalSupply()).thenReturn(totalSupply);
     when(protocolLayerClient.executeBurnTokenTransaction(any(TokenBurnRequest.class)))
         .thenReturn(tokenBurnRequest);
 
-    nftClientImpl.burnNfts(tokenId, serials, privateKey);
+    final long result = nftClientImpl.burnNfts(tokenId, serials, privateKey);
 
     verify(protocolLayerClient, times(1)).executeBurnTokenTransaction(tokenBurnCaptor.capture());
 
@@ -502,6 +517,7 @@ public class NftClientImplTest {
     Assertions.assertEquals(tokenId, request.tokenId());
     Assertions.assertEquals(serials, request.serials());
     Assertions.assertEquals(privateKey, request.supplyKey());
+    Assertions.assertEquals(totalSupply, result);
   }
 
   @Test
@@ -534,6 +550,74 @@ public class NftClientImplTest {
 
     Assertions.assertThrows(
         NullPointerException.class, () -> nftClientImpl.burnNfts(null, null, null));
+  }
+
+  @Test
+  void testWipeNft() throws HieroException {
+    final TokenWipeResult tokenWipeResult = Mockito.mock(TokenWipeResult.class);
+    final PrivateKey wipeKey = PrivateKey.generateECDSA();
+    final TokenId tokenId = TokenId.fromString("1.2.3");
+    final AccountId accountId = AccountId.fromString("0.0.100");
+    final long serial = 1L;
+    final long totalSupply = 0L;
+
+    when(operationalAccount.privateKey()).thenReturn(wipeKey);
+    when(tokenWipeResult.totalSupply()).thenReturn(totalSupply);
+    when(protocolLayerClient.executeWipeTokenTransaction(any(TokenWipeRequest.class)))
+        .thenReturn(tokenWipeResult);
+
+    final long result = nftClientImpl.wipeNft(tokenId, serial, accountId);
+
+    verify(protocolLayerClient, times(1)).executeWipeTokenTransaction(tokenWipeCaptor.capture());
+    final TokenWipeRequest request = tokenWipeCaptor.getValue();
+    Assertions.assertEquals(tokenId, request.tokenId());
+    Assertions.assertEquals(accountId, request.accountId());
+    Assertions.assertEquals(Set.of(serial), request.serials());
+    Assertions.assertEquals(wipeKey, request.wipeKey());
+    Assertions.assertEquals(totalSupply, result);
+  }
+
+  @Test
+  void testWipeNftWithCustomWipeKey() throws HieroException {
+    final TokenWipeResult tokenWipeResult = Mockito.mock(TokenWipeResult.class);
+    final PrivateKey wipeKey = PrivateKey.generateECDSA();
+    final TokenId tokenId = TokenId.fromString("1.2.3");
+    final AccountId accountId = AccountId.fromString("0.0.100");
+    final Set<Long> serials = Set.of(1L, 2L);
+    final long totalSupply = 0L;
+
+    when(tokenWipeResult.totalSupply()).thenReturn(totalSupply);
+    when(protocolLayerClient.executeWipeTokenTransaction(any(TokenWipeRequest.class)))
+        .thenReturn(tokenWipeResult);
+
+    final long result = nftClientImpl.wipeNfts(tokenId, serials, accountId, wipeKey);
+
+    verify(protocolLayerClient, times(1)).executeWipeTokenTransaction(tokenWipeCaptor.capture());
+    final TokenWipeRequest request = tokenWipeCaptor.getValue();
+    Assertions.assertEquals(tokenId, request.tokenId());
+    Assertions.assertEquals(accountId, request.accountId());
+    Assertions.assertEquals(serials, request.serials());
+    Assertions.assertEquals(wipeKey, request.wipeKey());
+    Assertions.assertEquals(totalSupply, result);
+  }
+
+  @Test
+  void testWipeNftNullParam() {
+    final TokenId tokenId = TokenId.fromString("1.2.3");
+    Assertions.assertThrows(
+        NullPointerException.class, () -> nftClientImpl.wipeNfts(null, Set.of(1L), null));
+    Assertions.assertThrows(
+        NullPointerException.class, () -> nftClientImpl.wipeNfts(tokenId, null, null));
+    Assertions.assertThrows(
+        NullPointerException.class,
+        () ->
+            nftClientImpl.wipeNfts(
+                tokenId, Set.of(1L), (AccountId) null, PrivateKey.generateECDSA()));
+    Assertions.assertThrows(
+        NullPointerException.class,
+        () ->
+            nftClientImpl.wipeNfts(
+                tokenId, Set.of(1L), AccountId.fromString("0.0.1"), (PrivateKey) null));
   }
 
   @Test
