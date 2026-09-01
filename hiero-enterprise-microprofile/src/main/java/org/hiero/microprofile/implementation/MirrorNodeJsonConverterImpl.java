@@ -794,9 +794,9 @@ public class MirrorNodeJsonConverterImpl implements MirrorNodeJsonConverter<Json
                     final long fallbackFeeAmount =
                         obj.getJsonObject("fallback_fee").getJsonNumber("amount").longValue();
                     final AccountId accountId =
-                        obj.get("collector_account_id").asJsonObject() == null
-                            ? null
-                            : AccountId.fromString(obj.getString("collector_account_id"));
+                        hasNonNull(obj, "collector_account_id")
+                            ? AccountId.fromString(obj.getString("collector_account_id"))
+                            : null;
                     final TokenId tokenId =
                         hasNonNull(obj.getJsonObject("fallback_fee"), "denominating_token_id")
                             ? TokenId.fromString(
@@ -818,11 +818,13 @@ public class MirrorNodeJsonConverterImpl implements MirrorNodeJsonConverter<Json
     if (!jsonObject.containsKey("balances")) {
       return List.of();
     }
-    final JsonArray balancesArray = jsonObject.getJsonArray("balances");
-    if (balancesArray == null) {
-      throw new IllegalArgumentException("TokenBalances array is not an array: " + balancesArray);
+
+    if (!isArray(jsonObject.get("balances"))) {
+      throw new IllegalArgumentException(
+          "TokenBalances array is not an array: " + jsonObject.get("balances"));
     }
 
+    final JsonArray balancesArray = jsonObject.getJsonArray("balances");
     Spliterator<JsonValue> spliterator =
         Spliterators.spliteratorUnknownSize(balancesArray.iterator(), Spliterator.ORDERED);
     return StreamSupport.stream(spliterator, false)
@@ -861,7 +863,10 @@ public class MirrorNodeJsonConverterImpl implements MirrorNodeJsonConverter<Json
     try {
       return Optional.of(
           new BalanceSnapshot(
-              parseInstant(jsonObject.getString("timestamp")), toAccountBalances(jsonObject)));
+              hasNonNull(jsonObject, "timestamp")
+                  ? parseInstant(jsonObject.getString("timestamp"))
+                  : null,
+              toAccountBalances(jsonObject)));
     } catch (final Exception e) {
       throw new IllegalStateException("Can not parse JSON: " + jsonObject, e);
     }
@@ -873,14 +878,13 @@ public class MirrorNodeJsonConverterImpl implements MirrorNodeJsonConverter<Json
     if (!jsonObject.containsKey("balances")) {
       return List.of();
     }
-    final JsonArray balancesArray = jsonObject.getJsonArray("balances");
-    if (balancesArray == null) {
+
+    if (!isArray(jsonObject.get("balances"))) {
       throw new IllegalArgumentException(
-          "Account balances array is not an array: " + balancesArray);
+          "Account balances array is not an array: " + jsonObject.get("balances"));
     }
-    if (balancesArray.isEmpty()) {
-      return List.of();
-    }
+
+    final JsonArray balancesArray = jsonObject.getJsonArray("balances");
     return jsonArrayToStream(balancesArray)
         .map(n -> toAccountBalance(n.asJsonObject()))
         .filter(Optional::isPresent)
@@ -896,7 +900,9 @@ public class MirrorNodeJsonConverterImpl implements MirrorNodeJsonConverter<Json
     try {
       return Optional.of(
           new AccountBalance(
-              AccountId.fromString(jsonObject.getString("account")),
+              hasNonNull(jsonObject, "account")
+                  ? AccountId.fromString(jsonObject.getString("account"))
+                  : null,
               jsonObject.getJsonNumber("balance").longValue(),
               toTokenBalances(jsonObject)));
     } catch (final Exception e) {
@@ -908,20 +914,22 @@ public class MirrorNodeJsonConverterImpl implements MirrorNodeJsonConverter<Json
     if (!jsonObject.containsKey("tokens") || jsonObject.isNull("tokens")) {
       return List.of();
     }
+
+    if (!isArray(jsonObject.get("tokens"))) {
+      throw new IllegalArgumentException(
+          "Token balances array is not an array: " + jsonObject.get("tokens"));
+    }
+
     final JsonArray tokensArray = jsonObject.getJsonArray("tokens");
-    if (tokensArray == null) {
-      throw new IllegalArgumentException("Token balances array is not an array: " + tokensArray);
-    }
-    if (tokensArray.isEmpty()) {
-      return List.of();
-    }
     return jsonArrayToStream(tokensArray).map(n -> toTokenBalance(n.asJsonObject())).toList();
   }
 
   private TokenBalance toTokenBalance(@NonNull JsonObject jsonObject) {
     try {
       return new TokenBalance(
-          TokenId.fromString(jsonObject.getString("token_id")),
+          hasNonNull(jsonObject, "token_id")
+              ? TokenId.fromString(jsonObject.getString("token_id"))
+              : null,
           jsonObject.getJsonNumber("balance").longValue());
     } catch (final Exception e) {
       throw new IllegalStateException("Can not parse JSON: " + jsonObject, e);
