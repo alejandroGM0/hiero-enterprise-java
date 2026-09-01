@@ -34,7 +34,7 @@ import org.hiero.base.data.NetworkFee;
 import org.hiero.base.data.NetworkStake;
 import org.hiero.base.data.NetworkSupplies;
 import org.hiero.base.data.Nft;
-import org.hiero.base.data.NftTransactionTransfer;
+import org.hiero.base.data.NftTransactionHistory;
 import org.hiero.base.data.NftTransfer;
 import org.hiero.base.data.Node;
 import org.hiero.base.data.Page;
@@ -362,7 +362,7 @@ public class MirrorNodeJsonConverterImpl implements MirrorNodeJsonConverter<Json
   }
 
   @Override
-  public @NonNull List<NftTransactionTransfer> toNftTransactionTransfers(@NonNull JsonNode node) {
+  public @NonNull List<NftTransactionHistory> toNftTransactionHistories(@NonNull JsonNode node) {
     Objects.requireNonNull(node, "jsonNode must not be null");
     if (!node.has("transactions")) {
       return List.of();
@@ -373,13 +373,13 @@ public class MirrorNodeJsonConverterImpl implements MirrorNodeJsonConverter<Json
           "NFT transaction history node is not an array: " + transactionsNode);
     }
     return jsonArrayToStream(transactionsNode)
-        .map(n -> toNftTransactionTransfer(n))
+        .map(n -> toNftTransactionHistory(n))
         .filter(Optional::isPresent)
         .map(Optional::get)
         .toList();
   }
 
-  private Optional<NftTransactionTransfer> toNftTransactionTransfer(@NonNull JsonNode node) {
+  private Optional<NftTransactionHistory> toNftTransactionHistory(@NonNull JsonNode node) {
     Objects.requireNonNull(node, "jsonNode must not be null");
     if (node.isNull() || node.isEmpty()) {
       return Optional.empty();
@@ -400,7 +400,7 @@ public class MirrorNodeJsonConverterImpl implements MirrorNodeJsonConverter<Json
       final TransactionType transactionType = TransactionType.from(node.get("type").asText());
 
       return Optional.of(
-          new NftTransactionTransfer(
+          new NftTransactionHistory(
               consensusTimestamp,
               isApproval,
               nonce,

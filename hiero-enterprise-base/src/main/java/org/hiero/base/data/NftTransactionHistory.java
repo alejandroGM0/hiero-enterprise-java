@@ -8,7 +8,7 @@ import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 /** Represents a Mirror Node transaction history entry for a specific NFT serial. */
-public record NftTransactionTransfer(
+public record NftTransactionHistory(
     @NonNull Instant consensusTimestamp,
     boolean isApproval,
     int nonce,
@@ -17,7 +17,7 @@ public record NftTransactionTransfer(
     @NonNull String transactionId,
     @NonNull TransactionType type) {
 
-  public NftTransactionTransfer {
+  public NftTransactionHistory {
     Objects.requireNonNull(consensusTimestamp, "consensusTimestamp must not be null");
     Objects.requireNonNull(transactionId, "transactionId must not be null");
     Objects.requireNonNull(type, "type must not be null");

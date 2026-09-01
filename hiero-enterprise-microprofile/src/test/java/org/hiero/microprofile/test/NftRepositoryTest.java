@@ -17,11 +17,12 @@ import org.hiero.base.HieroContext;
 import org.hiero.base.NftClient;
 import org.hiero.base.data.Account;
 import org.hiero.base.data.Nft;
-import org.hiero.base.data.NftTransactionTransfer;
+import org.hiero.base.data.NftTransactionHistory;
 import org.hiero.base.data.Page;
 import org.hiero.base.mirrornode.NftRepository;
 import org.hiero.base.protocol.data.TransactionType;
 import org.hiero.microprofile.ClientProvider;
+import org.hiero.test.HieroTestUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -46,6 +47,8 @@ public class NftRepositoryTest {
   @Inject private NftRepository nftRepository;
 
   @Inject private HieroContext hieroContext;
+
+  @Inject private HieroTestUtils testUtils;
 
   @Test
   void findMintedNftsByType() throws Exception {
@@ -162,11 +165,10 @@ public class NftRepositoryTest {
     nftClient.associateNft(tokenId, newOwner, newOwnerPrivateKey);
     nftClient.transferNft(tokenId, serial, adminAccountId, adminAccountPrivateKey, newOwner);
 
-    Thread.sleep(10_000);
+    testUtils.waitForMirrorNodeRecords();
 
     // when
-    final Page<NftTransactionTransfer> slice =
-        nftRepository.findTransactionHistory(tokenId, serial);
+    final Page<NftTransactionHistory> slice = nftRepository.findTransactionHistory(tokenId, serial);
 
     // then
     Assertions.assertNotNull(slice);
