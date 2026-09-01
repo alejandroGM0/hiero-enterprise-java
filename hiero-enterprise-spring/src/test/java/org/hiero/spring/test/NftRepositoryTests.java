@@ -13,7 +13,7 @@ import org.hiero.base.HieroContext;
 import org.hiero.base.NftClient;
 import org.hiero.base.data.Account;
 import org.hiero.base.data.Nft;
-import org.hiero.base.data.NftTransactionTransfer;
+import org.hiero.base.data.NftTransactionHistory;
 import org.hiero.base.data.Page;
 import org.hiero.base.mirrornode.NftRepository;
 import org.hiero.base.protocol.data.TransactionType;
@@ -433,9 +433,8 @@ public class NftRepositoryTests {
     hieroTestUtils.waitForMirrorNodeRecords();
 
     // when
-    final Page<NftTransactionTransfer> slice =
-        nftRepository.findTransactionHistory(tokenId, serial);
-    final List<NftTransactionTransfer> result = getAll(slice);
+    final Page<NftTransactionHistory> slice = nftRepository.findTransactionHistory(tokenId, serial);
+    final List<NftTransactionHistory> result = getAll(slice);
 
     // then
     Assertions.assertNotNull(result);

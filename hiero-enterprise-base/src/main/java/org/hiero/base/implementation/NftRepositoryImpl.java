@@ -7,7 +7,7 @@ import java.util.Optional;
 import org.hiero.base.HieroException;
 import org.hiero.base.data.Nft;
 import org.hiero.base.data.NftMetadata;
-import org.hiero.base.data.NftTransactionTransfer;
+import org.hiero.base.data.NftTransactionHistory;
 import org.hiero.base.data.Page;
 import org.hiero.base.mirrornode.MirrorNodeClient;
 import org.hiero.base.mirrornode.NftRepository;
@@ -58,7 +58,7 @@ public class NftRepositoryImpl implements NftRepository {
 
   @NonNull
   @Override
-  public Page<NftTransactionTransfer> findTransactionHistory(
+  public Page<NftTransactionHistory> findTransactionHistory(
       @NonNull final TokenId tokenId, final long serialNumber) throws HieroException {
     return mirrorNodeClient.queryNftTransactionHistory(tokenId, serialNumber);
   }
