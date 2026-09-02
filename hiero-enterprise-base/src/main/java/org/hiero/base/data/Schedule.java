@@ -1,7 +1,7 @@
 package org.hiero.base.data;
 
 import com.hedera.hashgraph.sdk.AccountId;
-import com.hedera.hashgraph.sdk.PublicKey;
+import com.hedera.hashgraph.sdk.Key;
 import com.hedera.hashgraph.sdk.ScheduleId;
 import java.time.Instant;
 import java.util.List;
@@ -12,7 +12,7 @@ import org.jspecify.annotations.Nullable;
 /** Represents a scheduled transaction returned by the Mirror Node REST API. */
 public record Schedule(
     @NonNull ScheduleId scheduleId,
-    @Nullable PublicKey adminKey,
+    @Nullable Key adminKey,
     boolean deleted,
     @NonNull Instant consensusTimestamp,
     @NonNull AccountId creatorAccountId,

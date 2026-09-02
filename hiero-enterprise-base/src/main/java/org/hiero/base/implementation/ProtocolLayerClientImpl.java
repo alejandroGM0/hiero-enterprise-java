@@ -1,11 +1,15 @@
 package org.hiero.base.implementation;
 
 import com.google.protobuf.ByteString;
+import com.hedera.hashgraph.sdk.AccountAllowanceApproveTransaction;
+import com.hedera.hashgraph.sdk.AccountAllowanceDeleteTransaction;
 import com.hedera.hashgraph.sdk.AccountBalance;
 import com.hedera.hashgraph.sdk.AccountBalanceQuery;
 import com.hedera.hashgraph.sdk.AccountCreateTransaction;
 import com.hedera.hashgraph.sdk.AccountDeleteTransaction;
 import com.hedera.hashgraph.sdk.AccountId;
+import com.hedera.hashgraph.sdk.AccountInfo;
+import com.hedera.hashgraph.sdk.AccountInfoQuery;
 import com.hedera.hashgraph.sdk.AccountUpdateTransaction;
 import com.hedera.hashgraph.sdk.ContractCreateTransaction;
 import com.hedera.hashgraph.sdk.ContractDeleteTransaction;
@@ -27,8 +31,14 @@ import com.hedera.hashgraph.sdk.SubscriptionHandle;
 import com.hedera.hashgraph.sdk.TokenAssociateTransaction;
 import com.hedera.hashgraph.sdk.TokenBurnTransaction;
 import com.hedera.hashgraph.sdk.TokenCreateTransaction;
+import com.hedera.hashgraph.sdk.TokenDeleteTransaction;
 import com.hedera.hashgraph.sdk.TokenDissociateTransaction;
+import com.hedera.hashgraph.sdk.TokenFreezeTransaction;
 import com.hedera.hashgraph.sdk.TokenMintTransaction;
+import com.hedera.hashgraph.sdk.TokenUnfreezeTransaction;
+import com.hedera.hashgraph.sdk.TokenUpdateNftsTransaction;
+import com.hedera.hashgraph.sdk.TokenUpdateTransaction;
+import com.hedera.hashgraph.sdk.TokenWipeTransaction;
 import com.hedera.hashgraph.sdk.TopicCreateTransaction;
 import com.hedera.hashgraph.sdk.TopicDeleteTransaction;
 import com.hedera.hashgraph.sdk.TopicMessageQuery;
@@ -58,6 +68,8 @@ import org.hiero.base.protocol.data.AccountCreateRequest;
 import org.hiero.base.protocol.data.AccountCreateResult;
 import org.hiero.base.protocol.data.AccountDeleteRequest;
 import org.hiero.base.protocol.data.AccountDeleteResult;
+import org.hiero.base.protocol.data.AccountInfoRequest;
+import org.hiero.base.protocol.data.AccountInfoResponse;
 import org.hiero.base.protocol.data.AccountUpdateRequest;
 import org.hiero.base.protocol.data.AccountUpdateResult;
 import org.hiero.base.protocol.data.ContractCallRequest;
@@ -78,20 +90,38 @@ import org.hiero.base.protocol.data.FileInfoRequest;
 import org.hiero.base.protocol.data.FileInfoResponse;
 import org.hiero.base.protocol.data.FileUpdateRequest;
 import org.hiero.base.protocol.data.FileUpdateResult;
+import org.hiero.base.protocol.data.HbarAllowanceApproveRequest;
+import org.hiero.base.protocol.data.HbarAllowanceApproveResult;
+import org.hiero.base.protocol.data.HbarTransferRequest;
+import org.hiero.base.protocol.data.HbarTransferResult;
 import org.hiero.base.protocol.data.HookStoreRequest;
 import org.hiero.base.protocol.data.HookStoreResult;
+import org.hiero.base.protocol.data.NftAllowanceDeleteRequest;
+import org.hiero.base.protocol.data.NftAllowanceDeleteResult;
 import org.hiero.base.protocol.data.TokenAssociateRequest;
 import org.hiero.base.protocol.data.TokenAssociateResult;
 import org.hiero.base.protocol.data.TokenBurnRequest;
 import org.hiero.base.protocol.data.TokenBurnResult;
 import org.hiero.base.protocol.data.TokenCreateRequest;
 import org.hiero.base.protocol.data.TokenCreateResult;
+import org.hiero.base.protocol.data.TokenDeleteRequest;
+import org.hiero.base.protocol.data.TokenDeleteResult;
 import org.hiero.base.protocol.data.TokenDissociateRequest;
 import org.hiero.base.protocol.data.TokenDissociateResult;
+import org.hiero.base.protocol.data.TokenFreezeRequest;
+import org.hiero.base.protocol.data.TokenFreezeResult;
 import org.hiero.base.protocol.data.TokenMintRequest;
 import org.hiero.base.protocol.data.TokenMintResult;
 import org.hiero.base.protocol.data.TokenTransferRequest;
 import org.hiero.base.protocol.data.TokenTransferResult;
+import org.hiero.base.protocol.data.TokenUnfreezeRequest;
+import org.hiero.base.protocol.data.TokenUnfreezeResult;
+import org.hiero.base.protocol.data.TokenUpdateNftsRequest;
+import org.hiero.base.protocol.data.TokenUpdateNftsResult;
+import org.hiero.base.protocol.data.TokenUpdateRequest;
+import org.hiero.base.protocol.data.TokenUpdateResult;
+import org.hiero.base.protocol.data.TokenWipeRequest;
+import org.hiero.base.protocol.data.TokenWipeResult;
 import org.hiero.base.protocol.data.TopicCreateRequest;
 import org.hiero.base.protocol.data.TopicCreateResult;
 import org.hiero.base.protocol.data.TopicDeleteRequest;
@@ -112,6 +142,7 @@ public class ProtocolLayerClientImpl implements ProtocolLayerClient {
   private static final Logger log = LoggerFactory.getLogger(ProtocolLayerClientImpl.class);
 
   public static final int DEFAULT_GAS = 5_000_000;
+  public static final int MAX_GAS_LIMIT = 15_000_000;
 
   private final List<TransactionListener> listeners;
 
@@ -140,6 +171,34 @@ public class ProtocolLayerClientImpl implements ProtocolLayerClient {
             .setMaxQueryPayment(request.maxQueryPayment());
     final AccountBalance balance = executeQueryAndWait(query);
     return new AccountBalanceResponse(balance.hbars);
+  }
+
+  @Override
+  public AccountInfoResponse executeAccountInfoQuery(@NonNull final AccountInfoRequest request)
+      throws HieroException {
+    Objects.requireNonNull(request, "request must not be null");
+    final AccountInfoQuery query =
+        new AccountInfoQuery()
+            .setAccountId(request.accountId())
+            .setQueryPayment(request.queryPayment())
+            .setMaxQueryPayment(request.maxQueryPayment());
+    final AccountInfo accountInfo = executeQueryAndWait(query);
+    return new AccountInfoResponse(
+        accountInfo.accountId,
+        accountInfo.contractAccountId == null ? "" : accountInfo.contractAccountId,
+        accountInfo.isDeleted,
+        accountInfo.key,
+        accountInfo.balance,
+        accountInfo.isReceiverSignatureRequired,
+        accountInfo.expirationTime,
+        accountInfo.autoRenewPeriod,
+        accountInfo.accountMemo == null ? "" : accountInfo.accountMemo,
+        accountInfo.ownedNfts,
+        accountInfo.maxAutomaticTokenAssociations,
+        accountInfo.aliasKey,
+        accountInfo.ledgerId,
+        accountInfo.ethereumNonce,
+        accountInfo.stakingInfo);
   }
 
   @Override
@@ -274,7 +333,7 @@ public class ProtocolLayerClientImpl implements ProtocolLayerClient {
             .setMaxTransactionFee(request.maxTransactionFee())
             .setTransactionValidDuration(request.transactionValidDuration())
             .setBytecodeFileId(request.fileId())
-            .setGas(DEFAULT_GAS)
+            .setGas(request.gas())
             .setConstructorParameters(constructorParams);
     final TransactionReceipt receipt =
         executeTransactionAndWaitOnReceipt(transaction, TransactionType.CONTRACT_CREATE);
@@ -313,7 +372,7 @@ public class ProtocolLayerClientImpl implements ProtocolLayerClient {
             .setTransactionValidDuration(request.transactionValidDuration())
             .setContractId(request.contractId())
             .setFunction(request.functionName(), functionParams)
-            .setGas(DEFAULT_GAS);
+            .setGas(request.gas());
     final TransactionRecord record =
         executeTransactionAndWaitOnRecord(transaction, TransactionType.CONTRACT_CALL);
     return new ContractCallResult(
@@ -544,12 +603,89 @@ public class ProtocolLayerClientImpl implements ProtocolLayerClient {
               .setTreasuryAccountId(request.treasuryAccountId())
               .setTokenType(request.tokenType())
               .setSupplyKey(request.supplyKey());
-      sign(transaction, request.treasuryKey(), request.supplyKey());
+      if (request.adminKey() != null) {
+        transaction.setAdminKey(request.adminKey().getPublicKey());
+      }
+      if (request.metadataKey() != null) {
+        transaction.setMetadataKey(request.metadataKey().getPublicKey());
+      }
+      if (request.wipeKey() != null) {
+        transaction.setWipeKey(request.wipeKey().getPublicKey());
+      }
+      if (request.freezeKey() != null) {
+        transaction.setFreezeKey(request.freezeKey().getPublicKey());
+      }
+      sign(transaction, request.treasuryKey(), request.supplyKey(), request.adminKey());
       final TransactionReceipt receipt =
           executeTransactionAndWaitOnReceipt(transaction, TransactionType.TOKEN_CREATE);
       return new TokenCreateResult(receipt.transactionId, receipt.status, receipt.tokenId);
     } catch (final Exception e) {
       throw new HieroException("Failed to execute create token transaction", e);
+    }
+  }
+
+  @Override
+  public TokenDeleteResult executeTokenDeleteTransaction(@NonNull final TokenDeleteRequest request)
+      throws HieroException {
+    Objects.requireNonNull(request, "request must not be null");
+    try {
+      final TokenDeleteTransaction transaction =
+          new TokenDeleteTransaction()
+              .setMaxTransactionFee(request.maxTransactionFee())
+              .setTransactionValidDuration(request.transactionValidDuration())
+              .setTokenId(request.tokenId());
+      sign(transaction, request.adminKey());
+      final TransactionReceipt receipt =
+          executeTransactionAndWaitOnReceipt(transaction, TransactionType.TOKEN_DELETE);
+      return new TokenDeleteResult(receipt.transactionId, receipt.status);
+    } catch (final Exception e) {
+      throw new HieroException("Failed to execute delete token transaction", e);
+    }
+  }
+
+  @Override
+  public TokenUpdateResult executeTokenUpdateTransaction(@NonNull final TokenUpdateRequest request)
+      throws HieroException {
+    Objects.requireNonNull(request, "request must not be null");
+    try {
+      final TokenUpdateTransaction transaction =
+          new TokenUpdateTransaction()
+              .setMaxTransactionFee(request.maxTransactionFee())
+              .setTransactionValidDuration(request.transactionValidDuration())
+              .setTokenId(request.tokenId());
+      if (request.name() != null) {
+        transaction.setTokenName(request.name());
+      }
+      if (request.symbol() != null) {
+        transaction.setTokenSymbol(request.symbol());
+      }
+      sign(transaction, request.adminKey());
+      final TransactionReceipt receipt =
+          executeTransactionAndWaitOnReceipt(transaction, TransactionType.TOKEN_UPDATE);
+      return new TokenUpdateResult(receipt.transactionId, receipt.status);
+    } catch (final Exception e) {
+      throw new HieroException("Failed to execute update token transaction", e);
+    }
+  }
+
+  @Override
+  public TokenUpdateNftsResult executeTokenUpdateNftsTransaction(
+      @NonNull final TokenUpdateNftsRequest request) throws HieroException {
+    Objects.requireNonNull(request, "request must not be null");
+    try {
+      final TokenUpdateNftsTransaction transaction =
+          new TokenUpdateNftsTransaction()
+              .setMaxTransactionFee(request.maxTransactionFee())
+              .setTransactionValidDuration(request.transactionValidDuration())
+              .setTokenId(request.tokenId())
+              .setSerials(request.serials())
+              .setMetadata(request.metadata());
+      sign(transaction, request.metadataKey());
+      final TransactionReceipt receipt =
+          executeTransactionAndWaitOnReceipt(transaction, TransactionType.NFT_UPDATE);
+      return new TokenUpdateNftsResult(receipt.transactionId, receipt.status);
+    } catch (final Exception e) {
+      throw new HieroException("Failed to execute update token nfts transaction", e);
     }
   }
 
@@ -592,6 +728,46 @@ public class ProtocolLayerClientImpl implements ProtocolLayerClient {
     }
   }
 
+  @Override
+  public TokenFreezeResult executeTokenFreezeTransaction(@NonNull final TokenFreezeRequest request)
+      throws HieroException {
+    Objects.requireNonNull(request, "request must not be null");
+    try {
+      final TokenFreezeTransaction transaction =
+          new TokenFreezeTransaction()
+              .setMaxTransactionFee(request.maxTransactionFee())
+              .setTransactionValidDuration(request.transactionValidDuration())
+              .setTokenId(request.tokenId())
+              .setAccountId(request.accountId());
+      sign(transaction, request.freezeKey());
+      final TransactionReceipt receipt =
+          executeTransactionAndWaitOnReceipt(transaction, TransactionType.TOKEN_FREEZE);
+      return new TokenFreezeResult(receipt.transactionId, receipt.status);
+    } catch (final Exception e) {
+      throw new HieroException("Failed to execute freeze token transaction", e);
+    }
+  }
+
+  @Override
+  public TokenUnfreezeResult executeTokenUnfreezeTransaction(
+      @NonNull final TokenUnfreezeRequest request) throws HieroException {
+    Objects.requireNonNull(request, "request must not be null");
+    try {
+      final TokenUnfreezeTransaction transaction =
+          new TokenUnfreezeTransaction()
+              .setMaxTransactionFee(request.maxTransactionFee())
+              .setTransactionValidDuration(request.transactionValidDuration())
+              .setTokenId(request.tokenId())
+              .setAccountId(request.accountId());
+      sign(transaction, request.freezeKey());
+      final TransactionReceipt receipt =
+          executeTransactionAndWaitOnReceipt(transaction, TransactionType.TOKEN_UNFREEZE);
+      return new TokenUnfreezeResult(receipt.transactionId, receipt.status);
+    } catch (final Exception e) {
+      throw new HieroException("Failed to execute unfreeze token transaction", e);
+    }
+  }
+
   public TokenBurnResult executeBurnTokenTransaction(@NonNull final TokenBurnRequest request)
       throws HieroException {
     Objects.requireNonNull(request, "request must not be null");
@@ -609,11 +785,33 @@ public class ProtocolLayerClientImpl implements ProtocolLayerClient {
         throw new IllegalArgumentException("either amount or serial must be provided");
       }
 
+      sign(transaction, request.supplyKey());
       final TransactionReceipt receipt =
           executeTransactionAndWaitOnReceipt(transaction, TransactionType.TOKEN_BURN);
       return new TokenBurnResult(receipt.transactionId, receipt.status, receipt.totalSupply);
     } catch (final Exception e) {
       throw new HieroException("Failed to execute burn token transaction", e);
+    }
+  }
+
+  @Override
+  public TokenWipeResult executeWipeTokenTransaction(@NonNull final TokenWipeRequest request)
+      throws HieroException {
+    Objects.requireNonNull(request, "request must not be null");
+    try {
+      final TokenWipeTransaction transaction =
+          new TokenWipeTransaction()
+              .setMaxTransactionFee(request.maxTransactionFee())
+              .setTransactionValidDuration(request.transactionValidDuration())
+              .setTokenId(request.tokenId())
+              .setAccountId(request.accountId())
+              .setSerials(List.copyOf(request.serials()));
+      sign(transaction, request.wipeKey());
+      final TransactionReceipt receipt =
+          executeTransactionAndWaitOnReceipt(transaction, TransactionType.TOKEN_WIPE);
+      return new TokenWipeResult(receipt.transactionId, receipt.status, receipt.totalSupply);
+    } catch (final Exception e) {
+      throw new HieroException("Failed to execute wipe token transaction", e);
     }
   }
 
@@ -676,6 +874,64 @@ public class ProtocolLayerClientImpl implements ProtocolLayerClient {
   }
 
   @Override
+  public HbarTransferResult executeHbarTransferTransaction(
+      @NonNull final HbarTransferRequest request) throws HieroException {
+    Objects.requireNonNull(request, "request must not be null");
+    try {
+      final TransferTransaction transaction =
+          new TransferTransaction()
+              .setMaxTransactionFee(request.maxTransactionFee())
+              .setTransactionValidDuration(request.transactionValidDuration())
+              .addHbarTransfer(request.sender(), request.amount().negated())
+              .addHbarTransfer(request.receiver(), request.amount());
+      sign(transaction, request.senderKey());
+      final TransactionReceipt receipt =
+          executeTransactionAndWaitOnReceipt(transaction, TransactionType.CRYPTO_TRANSFER);
+      return new HbarTransferResult(receipt.transactionId, receipt.status);
+    } catch (final Exception e) {
+      throw new HieroException("Failed to execute HBAR transfer transaction", e);
+    }
+  }
+
+  @Override
+  public HbarAllowanceApproveResult executeHbarAllowanceApproveTransaction(
+      @NonNull final HbarAllowanceApproveRequest request) throws HieroException {
+    Objects.requireNonNull(request, "request must not be null");
+    try {
+      final AccountAllowanceApproveTransaction transaction =
+          new AccountAllowanceApproveTransaction()
+              .setMaxTransactionFee(request.maxTransactionFee())
+              .setTransactionValidDuration(request.transactionValidDuration())
+              .approveHbarAllowance(request.owner(), request.spender(), request.amount());
+      sign(transaction, request.ownerKey());
+      final TransactionReceipt receipt =
+          executeTransactionAndWaitOnReceipt(transaction, TransactionType.ALLOWANCE_APPROVAL);
+      return new HbarAllowanceApproveResult(receipt.transactionId, receipt.status);
+    } catch (final Exception e) {
+      throw new HieroException("Failed to execute HBAR allowance approve transaction", e);
+    }
+  }
+
+  @Override
+  public NftAllowanceDeleteResult executeNftAllowanceDeleteTransaction(
+      @NonNull final NftAllowanceDeleteRequest request) throws HieroException {
+    Objects.requireNonNull(request, "request must not be null");
+    try {
+      final AccountAllowanceDeleteTransaction transaction =
+          new AccountAllowanceDeleteTransaction()
+              .setMaxTransactionFee(request.maxTransactionFee())
+              .setTransactionValidDuration(request.transactionValidDuration())
+              .deleteAllTokenNftAllowances(request.nftId(), request.owner());
+      sign(transaction, request.ownerKey());
+      final TransactionReceipt receipt =
+          executeTransactionAndWaitOnReceipt(transaction, TransactionType.ALLOWANCE_DELETION);
+      return new NftAllowanceDeleteResult(receipt.transactionId, receipt.status);
+    } catch (final Exception e) {
+      throw new HieroException("Failed to execute NFT allowance delete transaction", e);
+    }
+  }
+
+  @Override
   public @NonNull HookStoreResult executeHookStoreTransaction(
       @NonNull final HookStoreRequest request) throws HieroException {
     Objects.requireNonNull(request, "request must not be null");
@@ -703,7 +959,9 @@ public class ProtocolLayerClientImpl implements ProtocolLayerClient {
     if (keys != null) {
       transaction.freezeWith(hieroContext.getClient());
       for (PrivateKey key : keys) {
-        transaction.sign(key);
+        if (key != null) {
+          transaction.sign(key);
+        }
       }
     }
     return transaction;

@@ -56,7 +56,7 @@ public interface NftClient {
       @NonNull String name, @NonNull String symbol, @NonNull String supplierKey)
       throws HieroException {
     Objects.requireNonNull(supplierKey, "supplierKey must not be null");
-    return createNftType(name, symbol, PrivateKey.fromString(supplierKey));
+    return createNftType(name, symbol, PrivateKey.fromStringDER(supplierKey));
   }
 
   /**
@@ -96,7 +96,10 @@ public interface NftClient {
     Objects.requireNonNull(treasuryAccountId, "treasuryAccountId must not be null");
     Objects.requireNonNull(treasuryKey, "treasuryKey must not be null");
     return createNftType(
-        name, symbol, AccountId.fromString(treasuryAccountId), PrivateKey.fromString(treasuryKey));
+        name,
+        symbol,
+        AccountId.fromString(treasuryAccountId),
+        PrivateKey.fromStringDER(treasuryKey));
   }
 
   /**
@@ -161,8 +164,8 @@ public interface NftClient {
         name,
         symbol,
         AccountId.fromString(treasuryAccountId),
-        PrivateKey.fromString(treasuryKey),
-        PrivateKey.fromString(supplierKey));
+        PrivateKey.fromStringDER(treasuryKey),
+        PrivateKey.fromStringDER(supplierKey));
   }
 
   /**
@@ -185,6 +188,110 @@ public interface NftClient {
     Objects.requireNonNull(treasuryAccount, "treasuryAccount must not be null");
     return createNftType(
         name, symbol, treasuryAccount.accountId(), treasuryAccount.privateKey(), supplierKey);
+  }
+
+  /**
+   * Create a new NFT type with a metadata key. The operator account is used as treasury. The
+   * metadata key can authorize updates to NFT serial metadata, including after transfer out of the
+   * treasury (HIP-850).
+   *
+   * @param name the name of the NFT type
+   * @param symbol the symbol of the NFT type
+   * @param supplierKey the private key of the supplier account
+   * @param metadataKey the private key authorized to update NFT serial metadata
+   * @return the ID of the new NFT type
+   * @throws HieroException if the NFT type could not be created
+   */
+  @NonNull TokenId createNftType(
+      @NonNull String name,
+      @NonNull String symbol,
+      @NonNull PrivateKey supplierKey,
+      @NonNull PrivateKey metadataKey)
+      throws HieroException;
+
+  /**
+   * Create a new NFT type with a metadata key. The metadata key can authorize updates to NFT serial
+   * metadata, including after transfer out of the treasury (HIP-850).
+   *
+   * @param name the name of the NFT type
+   * @param symbol the symbol of the NFT type
+   * @param treasuryAccountId the ID of the treasury account
+   * @param treasuryKey the private key of the treasury account
+   * @param supplierKey the private key of the supplier account
+   * @param metadataKey the private key authorized to update NFT serial metadata
+   * @return the ID of the new NFT type
+   * @throws HieroException if the NFT type could not be created
+   */
+  @NonNull TokenId createNftType(
+      @NonNull String name,
+      @NonNull String symbol,
+      @NonNull AccountId treasuryAccountId,
+      @NonNull PrivateKey treasuryKey,
+      @NonNull PrivateKey supplierKey,
+      @NonNull PrivateKey metadataKey)
+      throws HieroException;
+
+  /**
+   * Create a new NFT type with a metadata key.
+   *
+   * @param name the name of the NFT type
+   * @param symbol the symbol of the NFT type
+   * @param treasuryAccountId the ID of the treasury account
+   * @param treasuryKey the private key of the treasury account
+   * @param supplierKey the private key of the supplier account
+   * @param metadataKey the private key authorized to update NFT serial metadata
+   * @return the ID of the new NFT type
+   * @throws HieroException if the NFT type could not be created
+   */
+  @NonNull
+  default TokenId createNftType(
+      @NonNull String name,
+      @NonNull String symbol,
+      @NonNull String treasuryAccountId,
+      @NonNull String treasuryKey,
+      @NonNull String supplierKey,
+      @NonNull String metadataKey)
+      throws HieroException {
+    Objects.requireNonNull(treasuryAccountId, "treasuryAccountId must not be null");
+    Objects.requireNonNull(treasuryKey, "treasuryKey must not be null");
+    Objects.requireNonNull(supplierKey, "supplierKey must not be null");
+    Objects.requireNonNull(metadataKey, "metadataKey must not be null");
+    return createNftType(
+        name,
+        symbol,
+        AccountId.fromString(treasuryAccountId),
+        PrivateKey.fromStringDER(treasuryKey),
+        PrivateKey.fromStringDER(supplierKey),
+        PrivateKey.fromStringDER(metadataKey));
+  }
+
+  /**
+   * Create a new NFT type with a metadata key.
+   *
+   * @param name the name of the NFT type
+   * @param symbol the symbol of the NFT type
+   * @param treasuryAccount the treasury account
+   * @param supplierKey the private key of the supplier account
+   * @param metadataKey the private key authorized to update NFT serial metadata
+   * @return the ID of the new NFT type
+   * @throws HieroException if the NFT type could not be created
+   */
+  @NonNull
+  default TokenId createNftType(
+      @NonNull String name,
+      @NonNull String symbol,
+      @NonNull Account treasuryAccount,
+      @NonNull PrivateKey supplierKey,
+      @NonNull PrivateKey metadataKey)
+      throws HieroException {
+    Objects.requireNonNull(treasuryAccount, "treasuryAccount must not be null");
+    return createNftType(
+        name,
+        symbol,
+        treasuryAccount.accountId(),
+        treasuryAccount.privateKey(),
+        supplierKey,
+        metadataKey);
   }
 
   /**
@@ -220,7 +327,7 @@ public interface NftClient {
     associateNft(
         TokenId.fromString(tokenId),
         AccountId.fromString(accountId),
-        PrivateKey.fromString(accountKey));
+        PrivateKey.fromStringDER(accountKey));
   }
 
   /**
@@ -297,7 +404,7 @@ public interface NftClient {
     dissociateNft(
         TokenId.fromString(tokenId),
         AccountId.fromString(accountId),
-        PrivateKey.fromString(accountKey));
+        PrivateKey.fromStringDER(accountKey));
   }
   ;
 
@@ -340,6 +447,115 @@ public interface NftClient {
     dissociateNft(tokenIds, account.accountId(), account.privateKey());
   }
   ;
+
+  /**
+   * Freezes an account for the given NFT type. The operator account key is used as the freeze key.
+   * A frozen account cannot send or receive NFTs of that type.
+   *
+   * @param tokenId the ID of the NFT type
+   * @param accountId the ID of the account to freeze
+   * @throws HieroException if the account could not be frozen for the NFT type
+   */
+  void freezeNft(@NonNull TokenId tokenId, @NonNull AccountId accountId) throws HieroException;
+
+  /**
+   * Freezes an account for the given NFT type. Must be signed by the token freeze key.
+   *
+   * @param tokenId the ID of the NFT type
+   * @param accountId the ID of the account to freeze
+   * @param freezeKey the freeze key of the NFT type
+   * @throws HieroException if the account could not be frozen for the NFT type
+   */
+  void freezeNft(
+      @NonNull TokenId tokenId, @NonNull AccountId accountId, @NonNull PrivateKey freezeKey)
+      throws HieroException;
+
+  /**
+   * Freezes an account for the given NFT type.
+   *
+   * @param tokenId the ID of the NFT type
+   * @param accountId the ID of the account to freeze
+   * @param freezeKey the freeze key of the NFT type
+   * @throws HieroException if the account could not be frozen for the NFT type
+   */
+  default void freezeNft(
+      @NonNull String tokenId, @NonNull String accountId, @NonNull String freezeKey)
+      throws HieroException {
+    Objects.requireNonNull(tokenId, "tokenId must not be null");
+    Objects.requireNonNull(accountId, "accountId must not be null");
+    Objects.requireNonNull(freezeKey, "freezeKey must not be null");
+    freezeNft(
+        TokenId.fromString(tokenId),
+        AccountId.fromString(accountId),
+        PrivateKey.fromStringDER(freezeKey));
+  }
+
+  /**
+   * Freezes an account for the given NFT type.
+   *
+   * @param tokenId the ID of the NFT type
+   * @param account the account to freeze
+   * @throws HieroException if the account could not be frozen for the NFT type
+   */
+  default void freezeNft(@NonNull TokenId tokenId, @NonNull Account account) throws HieroException {
+    Objects.requireNonNull(account, "account must not be null");
+    freezeNft(tokenId, account.accountId(), account.privateKey());
+  }
+
+  /**
+   * Unfreezes an account for the given NFT type. The operator account key is used as the freeze
+   * key.
+   *
+   * @param tokenId the ID of the NFT type
+   * @param accountId the ID of the account to unfreeze
+   * @throws HieroException if the account could not be unfrozen for the NFT type
+   */
+  void unfreezeNft(@NonNull TokenId tokenId, @NonNull AccountId accountId) throws HieroException;
+
+  /**
+   * Unfreezes an account for the given NFT type. Must be signed by the token freeze key.
+   *
+   * @param tokenId the ID of the NFT type
+   * @param accountId the ID of the account to unfreeze
+   * @param freezeKey the freeze key of the NFT type
+   * @throws HieroException if the account could not be unfrozen for the NFT type
+   */
+  void unfreezeNft(
+      @NonNull TokenId tokenId, @NonNull AccountId accountId, @NonNull PrivateKey freezeKey)
+      throws HieroException;
+
+  /**
+   * Unfreezes an account for the given NFT type.
+   *
+   * @param tokenId the ID of the NFT type
+   * @param accountId the ID of the account to unfreeze
+   * @param freezeKey the freeze key of the NFT type
+   * @throws HieroException if the account could not be unfrozen for the NFT type
+   */
+  default void unfreezeNft(
+      @NonNull String tokenId, @NonNull String accountId, @NonNull String freezeKey)
+      throws HieroException {
+    Objects.requireNonNull(tokenId, "tokenId must not be null");
+    Objects.requireNonNull(accountId, "accountId must not be null");
+    Objects.requireNonNull(freezeKey, "freezeKey must not be null");
+    unfreezeNft(
+        TokenId.fromString(tokenId),
+        AccountId.fromString(accountId),
+        PrivateKey.fromStringDER(freezeKey));
+  }
+
+  /**
+   * Unfreezes an account for the given NFT type.
+   *
+   * @param tokenId the ID of the NFT type
+   * @param account the account to unfreeze
+   * @throws HieroException if the account could not be unfrozen for the NFT type
+   */
+  default void unfreezeNft(@NonNull TokenId tokenId, @NonNull Account account)
+      throws HieroException {
+    Objects.requireNonNull(account, "account must not be null");
+    unfreezeNft(tokenId, account.accountId(), account.privateKey());
+  }
 
   /**
    * Mint a new NFT of the given type. The NFT is minted by the operator account. The operator
@@ -391,7 +607,7 @@ public interface NftClient {
       throws HieroException {
     Objects.requireNonNull(tokenId, "tokenId must not be null");
     Objects.requireNonNull(supplyKey, "supplyKey must not be null");
-    return mintNft(TokenId.fromString(tokenId), PrivateKey.fromString(supplyKey), metadata);
+    return mintNft(TokenId.fromString(tokenId), PrivateKey.fromStringDER(supplyKey), metadata);
   }
 
   /**
@@ -450,7 +666,7 @@ public interface NftClient {
       throws HieroException {
     Objects.requireNonNull(tokenId, "tokenId must not be null");
     Objects.requireNonNull(supplyKey, "supplyKey must not be null");
-    return mintNfts(TokenId.fromString(tokenId), PrivateKey.fromString(supplyKey), metadata);
+    return mintNfts(TokenId.fromString(tokenId), PrivateKey.fromStringDER(supplyKey), metadata);
   }
 
   /**
@@ -458,10 +674,11 @@ public interface NftClient {
    *
    * @param tokenId the ID of the NFT type
    * @param serialNumber the serial number of the NFT
+   * @return total supply for the NFT type after the burn
    * @throws HieroException if the NFT could not be burned
    */
-  default void burnNft(@NonNull TokenId tokenId, long serialNumber) throws HieroException {
-    burnNfts(tokenId, Set.of(serialNumber));
+  default long burnNft(@NonNull TokenId tokenId, long serialNumber) throws HieroException {
+    return burnNfts(tokenId, Set.of(serialNumber));
   }
 
   /**
@@ -470,11 +687,12 @@ public interface NftClient {
    * @param tokenId the ID of the NFT type
    * @param serialNumber the serial number of the NFT
    * @param supplyKey the private key of the supply account
+   * @return total supply for the NFT type after the burn
    * @throws HieroException if the NFT could not be burned
    */
-  default void burnNft(@NonNull TokenId tokenId, long serialNumber, @NonNull PrivateKey supplyKey)
+  default long burnNft(@NonNull TokenId tokenId, long serialNumber, @NonNull PrivateKey supplyKey)
       throws HieroException {
-    burnNfts(tokenId, Set.of(serialNumber), supplyKey);
+    return burnNfts(tokenId, Set.of(serialNumber), supplyKey);
   }
 
   /**
@@ -482,9 +700,10 @@ public interface NftClient {
    *
    * @param tokenId the ID of the NFT type
    * @param serialNumbers the serial numbers of the NFTs
+   * @return total supply for the NFT type after the burn
    * @throws HieroException if the NFTs could not be burned
    */
-  void burnNfts(@NonNull TokenId tokenId, @NonNull Set<Long> serialNumbers) throws HieroException;
+  long burnNfts(@NonNull TokenId tokenId, @NonNull Set<Long> serialNumbers) throws HieroException;
 
   /**
    * Burn NFTs.
@@ -492,11 +711,119 @@ public interface NftClient {
    * @param tokenId the ID of the NFT type
    * @param serialNumbers the serial numbers of the NFTs
    * @param supplyKey the private key of the supply account
-   * @throws HieroException
+   * @return total supply for the NFT type after the burn
+   * @throws HieroException if the NFTs could not be burned
    */
-  void burnNfts(
+  long burnNfts(
       @NonNull TokenId tokenId, @NonNull Set<Long> serialNumbers, @NonNull PrivateKey supplyKey)
       throws HieroException;
+
+  /**
+   * Wipes an NFT from an account. The operator account key is used as the wipe key. The account
+   * must not be the token treasury. Wiping burns the NFT and decreases total supply.
+   *
+   * @param tokenId the ID of the NFT type
+   * @param serialNumber the serial number of the NFT
+   * @param accountId the account to wipe the NFT from
+   * @return total supply for the NFT type after the wipe
+   * @throws HieroException if the NFT could not be wiped
+   */
+  default long wipeNft(@NonNull TokenId tokenId, long serialNumber, @NonNull AccountId accountId)
+      throws HieroException {
+    return wipeNfts(tokenId, Set.of(serialNumber), accountId);
+  }
+
+  /**
+   * Wipes an NFT from an account. Must be signed by the token wipe key. The account must not be the
+   * token treasury.
+   *
+   * @param tokenId the ID of the NFT type
+   * @param serialNumber the serial number of the NFT
+   * @param accountId the account to wipe the NFT from
+   * @param wipeKey the wipe key of the NFT type
+   * @return total supply for the NFT type after the wipe
+   * @throws HieroException if the NFT could not be wiped
+   */
+  default long wipeNft(
+      @NonNull TokenId tokenId,
+      long serialNumber,
+      @NonNull AccountId accountId,
+      @NonNull PrivateKey wipeKey)
+      throws HieroException {
+    return wipeNfts(tokenId, Set.of(serialNumber), accountId, wipeKey);
+  }
+
+  /**
+   * Wipes an NFT from an account.
+   *
+   * @param tokenId the ID of the NFT type
+   * @param serialNumber the serial number of the NFT
+   * @param account the account to wipe the NFT from
+   * @param wipeKey the wipe key of the NFT type
+   * @return total supply for the NFT type after the wipe
+   * @throws HieroException if the NFT could not be wiped
+   */
+  default long wipeNft(
+      @NonNull TokenId tokenId,
+      long serialNumber,
+      @NonNull Account account,
+      @NonNull PrivateKey wipeKey)
+      throws HieroException {
+    Objects.requireNonNull(account, "account must not be null");
+    return wipeNft(tokenId, serialNumber, account.accountId(), wipeKey);
+  }
+
+  /**
+   * Wipes NFTs from an account. The operator account key is used as the wipe key. The account must
+   * not be the token treasury. Wiping burns the NFTs and decreases total supply.
+   *
+   * @param tokenId the ID of the NFT type
+   * @param serialNumbers the serial numbers of the NFTs
+   * @param accountId the account to wipe the NFTs from
+   * @return total supply for the NFT type after the wipe
+   * @throws HieroException if the NFTs could not be wiped
+   */
+  long wipeNfts(
+      @NonNull TokenId tokenId, @NonNull Set<Long> serialNumbers, @NonNull AccountId accountId)
+      throws HieroException;
+
+  /**
+   * Wipes NFTs from an account. Must be signed by the token wipe key. The account must not be the
+   * token treasury.
+   *
+   * @param tokenId the ID of the NFT type
+   * @param serialNumbers the serial numbers of the NFTs
+   * @param accountId the account to wipe the NFTs from
+   * @param wipeKey the wipe key of the NFT type
+   * @return total supply for the NFT type after the wipe
+   * @throws HieroException if the NFTs could not be wiped
+   */
+  long wipeNfts(
+      @NonNull TokenId tokenId,
+      @NonNull Set<Long> serialNumbers,
+      @NonNull AccountId accountId,
+      @NonNull PrivateKey wipeKey)
+      throws HieroException;
+
+  /**
+   * Wipes NFTs from an account.
+   *
+   * @param tokenId the ID of the NFT type
+   * @param serialNumbers the serial numbers of the NFTs
+   * @param account the account to wipe the NFTs from
+   * @param wipeKey the wipe key of the NFT type
+   * @return total supply for the NFT type after the wipe
+   * @throws HieroException if the NFTs could not be wiped
+   */
+  default long wipeNfts(
+      @NonNull TokenId tokenId,
+      @NonNull Set<Long> serialNumbers,
+      @NonNull Account account,
+      @NonNull PrivateKey wipeKey)
+      throws HieroException {
+    Objects.requireNonNull(account, "account must not be null");
+    return wipeNfts(tokenId, serialNumbers, account.accountId(), wipeKey);
+  }
 
   /**
    * Transfer an NFT to another account.
@@ -572,5 +899,198 @@ public interface NftClient {
     Objects.requireNonNull(fromAccount, "fromAccount must not be null");
     transferNfts(
         tokenId, serialNumbers, fromAccount.accountId(), fromAccount.privateKey(), toAccountId);
+  }
+
+  /**
+   * Updates an NFT type (token class) name and symbol. The operator account key is used as the
+   * admin key. The NFT type must have been created with that key as admin (the default for {@link
+   * #createNftType} when the operator is the treasury).
+   *
+   * @param tokenId the ID of the NFT type to update
+   * @param name the new name of the NFT type
+   * @param symbol the new symbol of the NFT type
+   * @throws HieroException if the NFT type could not be updated
+   */
+  void updateNftType(@NonNull TokenId tokenId, @NonNull String name, @NonNull String symbol)
+      throws HieroException;
+
+  /**
+   * Updates an NFT type (token class) name and symbol. Must be signed by the admin key that was set
+   * when the NFT type was created.
+   *
+   * @param tokenId the ID of the NFT type to update
+   * @param name the new name of the NFT type
+   * @param symbol the new symbol of the NFT type
+   * @param adminKey the admin private key of the NFT type
+   * @throws HieroException if the NFT type could not be updated
+   */
+  void updateNftType(
+      @NonNull TokenId tokenId,
+      @NonNull String name,
+      @NonNull String symbol,
+      @NonNull PrivateKey adminKey)
+      throws HieroException;
+
+  /**
+   * Updates an NFT type (token class) name and symbol.
+   *
+   * @param tokenId the ID of the NFT type to update
+   * @param name the new name of the NFT type
+   * @param symbol the new symbol of the NFT type
+   * @param adminKey the admin private key of the NFT type
+   * @throws HieroException if the NFT type could not be updated
+   */
+  default void updateNftType(
+      @NonNull String tokenId,
+      @NonNull String name,
+      @NonNull String symbol,
+      @NonNull String adminKey)
+      throws HieroException {
+    Objects.requireNonNull(tokenId, "tokenId must not be null");
+    Objects.requireNonNull(adminKey, "adminKey must not be null");
+    updateNftType(TokenId.fromString(tokenId), name, symbol, PrivateKey.fromStringDER(adminKey));
+  }
+
+  /**
+   * Updates an NFT type (token class) name and symbol. The operator account key is used as the
+   * admin key.
+   *
+   * @param tokenId the ID of the NFT type to update
+   * @param name the new name of the NFT type
+   * @param symbol the new symbol of the NFT type
+   * @throws HieroException if the NFT type could not be updated
+   */
+  default void updateNftType(@NonNull String tokenId, @NonNull String name, @NonNull String symbol)
+      throws HieroException {
+    Objects.requireNonNull(tokenId, "tokenId must not be null");
+    updateNftType(TokenId.fromString(tokenId), name, symbol);
+  }
+
+  /**
+   * Updates the metadata of a single NFT serial. The operator account key is used as the metadata
+   * key (or supply key while the NFT is held in treasury; see HIP-850).
+   *
+   * @param tokenId the ID of the NFT type
+   * @param serialNumber the serial number of the NFT
+   * @param metadata the new metadata (at most 100 bytes)
+   * @throws HieroException if the NFT metadata could not be updated
+   */
+  default void updateNftMetadata(
+      @NonNull TokenId tokenId, long serialNumber, @NonNull byte[] metadata) throws HieroException {
+    updateNftsMetadata(tokenId, List.of(serialNumber), metadata);
+  }
+
+  /**
+   * Updates the metadata of a single NFT serial. Must be signed by the token metadata key, or by
+   * the supply key while the NFT is held in the treasury (HIP-850).
+   *
+   * @param tokenId the ID of the NFT type
+   * @param serialNumber the serial number of the NFT
+   * @param metadataKey the metadata key (or supply key for treasury-held NFTs)
+   * @param metadata the new metadata (at most 100 bytes)
+   * @throws HieroException if the NFT metadata could not be updated
+   */
+  default void updateNftMetadata(
+      @NonNull TokenId tokenId,
+      long serialNumber,
+      @NonNull PrivateKey metadataKey,
+      @NonNull byte[] metadata)
+      throws HieroException {
+    updateNftsMetadata(tokenId, List.of(serialNumber), metadataKey, metadata);
+  }
+
+  /**
+   * Updates the metadata of NFT serials. The operator account key is used as the metadata key (or
+   * supply key while the NFTs are held in treasury; see HIP-850). At most 10 serials may be updated
+   * in one call.
+   *
+   * @param tokenId the ID of the NFT type
+   * @param serialNumbers the serial numbers to update
+   * @param metadata the new metadata (at most 100 bytes)
+   * @throws HieroException if the NFT metadata could not be updated
+   */
+  void updateNftsMetadata(
+      @NonNull TokenId tokenId, @NonNull List<Long> serialNumbers, @NonNull byte[] metadata)
+      throws HieroException;
+
+  /**
+   * Updates the metadata of NFT serials. Must be signed by the token metadata key, or by the supply
+   * key while the NFTs are held in the treasury (HIP-850). At most 10 serials may be updated in one
+   * call.
+   *
+   * @param tokenId the ID of the NFT type
+   * @param serialNumbers the serial numbers to update
+   * @param metadataKey the metadata key (or supply key for treasury-held NFTs)
+   * @param metadata the new metadata (at most 100 bytes)
+   * @throws HieroException if the NFT metadata could not be updated
+   */
+  void updateNftsMetadata(
+      @NonNull TokenId tokenId,
+      @NonNull List<Long> serialNumbers,
+      @NonNull PrivateKey metadataKey,
+      @NonNull byte[] metadata)
+      throws HieroException;
+
+  /**
+   * Updates the metadata of NFT serials.
+   *
+   * @param tokenId the ID of the NFT type
+   * @param serialNumbers the serial numbers to update
+   * @param metadataKey the metadata key (or supply key for treasury-held NFTs)
+   * @param metadata the new metadata (at most 100 bytes)
+   * @throws HieroException if the NFT metadata could not be updated
+   */
+  default void updateNftsMetadata(
+      @NonNull String tokenId,
+      @NonNull List<Long> serialNumbers,
+      @NonNull String metadataKey,
+      @NonNull byte[] metadata)
+      throws HieroException {
+    Objects.requireNonNull(tokenId, "tokenId must not be null");
+    Objects.requireNonNull(metadataKey, "metadataKey must not be null");
+    updateNftsMetadata(
+        TokenId.fromString(tokenId),
+        serialNumbers,
+        PrivateKey.fromStringDER(metadataKey),
+        metadata);
+  }
+
+  /**
+   * Deletes an NFT type (token class). All NFTs of that type must have been burned first. The
+   * operator account key is used as the admin key. The NFT type must have been created with that
+   * key as admin (the default for {@link #createNftType} when the operator is the treasury).
+   *
+   * @param tokenId the ID of the NFT type to delete
+   * @throws HieroException if the NFT type could not be deleted
+   */
+  void deleteNftType(@NonNull TokenId tokenId) throws HieroException;
+
+  /**
+   * Deletes an NFT type (token class). All NFTs of that type must have been burned first. Must be
+   * signed by the admin key that was set when the NFT type was created.
+   *
+   * @param tokenId the ID of the NFT type to delete
+   * @param adminKey the admin private key of the NFT type
+   * @throws HieroException if the NFT type could not be deleted
+   */
+  void deleteNftType(@NonNull TokenId tokenId, @NonNull PrivateKey adminKey) throws HieroException;
+
+  /**
+   * Deletes an NFT type (token class). All NFTs of that type must have been burned first.
+   *
+   * @param tokenId the ID of the NFT type to delete
+   * @param adminKey the admin private key of the NFT type
+   * @throws HieroException if the NFT type could not be deleted
+   */
+  default void deleteNftType(@NonNull String tokenId, @NonNull String adminKey)
+      throws HieroException {
+    Objects.requireNonNull(tokenId, "tokenId must not be null");
+    Objects.requireNonNull(adminKey, "adminKey must not be null");
+    deleteNftType(TokenId.fromString(tokenId), PrivateKey.fromStringDER(adminKey));
+  }
+
+  default void deleteNftType(@NonNull String tokenId) throws HieroException {
+    Objects.requireNonNull(tokenId, "tokenId must not be null");
+    deleteNftType(TokenId.fromString(tokenId));
   }
 }
