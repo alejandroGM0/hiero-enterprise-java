@@ -255,6 +255,11 @@
         <artifactId>okio-jvm</artifactId>
         <version>${okio.version}</version>
       </dependency>
+      <dependency>
+        <groupId>info.picocli</groupId>
+        <artifactId>picocli</artifactId>
+        <version>4.7.6</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 
@@ -264,6 +269,7 @@
     <module>hiero-enterprise-spring</module>
     <module>hiero-enterprise-microprofile</module>
     <module>hiero-enterprise-spring-sample</module>
+    <module>hiero-enterprise-cli-sample</module>
     <module>hiero-enterprise-microprofile-sample</module>
   </modules>
 
