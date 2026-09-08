@@ -14,13 +14,15 @@ import org.springframework.http.HttpRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.client.ClientHttpResponse;
+import org.springframework.web.client.RestClient;
 
 class ContractVerificationErrorHandlingTest {
 
   @Test
   void preservesBodyReadFailureCause() throws Exception {
     final ContractVerificationClientImplementation client =
-        new ContractVerificationClientImplementation(Mockito.mock(HieroConfig.class));
+        new ContractVerificationClientImplementation(
+            Mockito.mock(HieroConfig.class), Mockito.mock(RestClient.class));
     final Method handleError =
         ContractVerificationClientImplementation.class.getDeclaredMethod(
             "handleError", HttpRequest.class, ClientHttpResponse.class);

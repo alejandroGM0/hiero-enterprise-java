@@ -182,9 +182,6 @@ public class HieroAutoConfiguration {
         Optional.ofNullable(properties.getNetwork().getMirrorNodeJavaRest())
             .filter(s -> !s.isBlank());
     return new MirrorNodeClientImpl(builder, mirrorNodeJavaRest);
-    RestClient.Builder builder =
-        restClientBuilder(restClientBuilderProvider).clone().baseUrl(baseUri);
-    return new MirrorNodeClientImpl(builder);
   }
 
   @Bean
