@@ -7,7 +7,6 @@ import java.io.InputStream;
 import java.io.StringReader;
 import java.util.List;
 import java.util.Optional;
-
 import org.hiero.base.data.AccountBalance;
 import org.hiero.base.data.AccountInfo;
 import org.hiero.base.data.BalanceSnapshot;
@@ -29,8 +28,6 @@ import org.hiero.microprofile.implementation.MirrorNodeJsonConverterImpl;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
 
 public class MirrorNodeJsonConverterTest {
   private MirrorNodeJsonConverterImpl jsonConverter;
@@ -387,7 +384,6 @@ public class MirrorNodeJsonConverterTest {
         IllegalArgumentException.class, () -> jsonConverter.toNetworkFees(jsonObject2));
   }
 
-
   // Balance
   @Test
   void shouldParseValidBalanceSnapshot() {
@@ -403,7 +399,6 @@ public class MirrorNodeJsonConverterTest {
     final JsonObject jsonObject = Json.createObjectBuilder().build();
     Assertions.assertTrue(jsonConverter.toBalanceSnapshot(jsonObject).isEmpty());
   }
-
 
   @Test
   void shouldParseValidAccountBalance() {
@@ -426,7 +421,7 @@ public class MirrorNodeJsonConverterTest {
     Assertions.assertThrows(
         IllegalArgumentException.class, () -> jsonConverter.toAccountBalances(jsonObject1));
 
-    JsonObject jsonObject2 =parseJson("{\"balances\": {}}");
+    JsonObject jsonObject2 = parseJson("{\"balances\": {}}");
     Assertions.assertThrows(
         IllegalArgumentException.class, () -> jsonConverter.toAccountBalances(jsonObject2));
   }
